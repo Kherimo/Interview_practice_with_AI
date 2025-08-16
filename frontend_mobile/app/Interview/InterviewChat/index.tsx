@@ -173,6 +173,7 @@ const InterviewChat = () => {
                 onChangeText={setInput}
                 style={styles.input}
                 multiline
+                
               />
               <TouchableOpacity onPress={send} style={styles.sendBtn}>
                 <Ionicons name="send" size={20} color="#0CE7FF" />
@@ -274,21 +275,23 @@ const styles = StyleSheet.create({
     
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 20,
+    backgroundColor: "transparent",
+    // borderRadius: 20,
     paddingLeft: 14,
     paddingRight: 6,
-    paddingVertical: 6,
+    // paddingVertical: 6,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.18)",
   },
   input: {
     flex: 1,
     minHeight: 38,
+    // borderWidth:1,
     maxHeight: 120,
     color: "#fff",
     fontSize: 14,
-    paddingVertical: 6,
+    
+    // paddingVertical: 6,
     paddingRight: 8,
   },
   sendBtn: {

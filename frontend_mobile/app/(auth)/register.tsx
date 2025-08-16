@@ -88,7 +88,7 @@ const RegisterScreen = () => {
         {/* Button Đăng ký */}
         <ButtonCustom
           title="Đăng ký"
-          onPress={() => console.log('Đăng ký')}
+          onPress={() => {router.replace('/SetUpProfile')}}
           buttonStyle={{ backgroundColor: Colors.aqua, borderRadius: 12, marginBottom: 10 }}
           textStyle={{ fontSize: 16, fontWeight: 'bold' }}
         />
