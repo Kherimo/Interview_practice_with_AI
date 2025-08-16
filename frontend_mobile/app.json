@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "frontend_mobile",
-    "slug": "frontend_mobile",
+    "name": "PrepTalk",
+    "slug": "preptalk",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.jpg",
-    "scheme": "frontendmobile",
+    "scheme": "preptalk",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo.jpg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true

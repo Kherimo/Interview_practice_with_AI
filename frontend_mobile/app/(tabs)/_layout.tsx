@@ -52,19 +52,19 @@ export default function TabLayout() {
       />
       
       <Tabs.Screen
-        name="history"
-        options={{
-          title: 'Lịch sử',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="progress"
         options={{
           title: 'Tiến độ',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
         }}
       />
+        <Tabs.Screen
+          name="history"
+          options={{
+            title: 'Lịch sử',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+          }}
+        />
       <Tabs.Screen
         name="saved"
         options={{
@@ -76,11 +76,39 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Cài đặt',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
         }}
       />
       
+      {/* Ẩn các màn hình phụ để tránh cảnh báo */}
+      {/* <Tabs.Screen
+        name="practice"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="interview/[id]"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="topic/[id]"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="recommendations"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="details"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="goals"
+        options={{ href: null }}
+      /> */}
     </Tabs>
-
   );
 }

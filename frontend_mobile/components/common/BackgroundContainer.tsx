@@ -38,8 +38,8 @@ const BackgroundContainer: React.FC<BackgroundContainerProps> = ({
 
 const styles = StyleSheet.create({
   background: {
-    width: width,
-    height: height,
+    width: '100%',
+    height: '100%',
     flex: 1,
   },
   overlay: {

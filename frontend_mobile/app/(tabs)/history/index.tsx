@@ -12,6 +12,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useRouter } from 'expo-router';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import EmptyHistoryState from '../../../components/ui/history/EmptyHistoryState';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 // Định nghĩa type cho lịch sử phỏng vấn
 type HistoryItem = {
@@ -53,44 +54,64 @@ export default function HistoryScreen() {
   // Đặt thành true để xem danh sách lịch sử, false để xem trạng thái trống
   const hasHistory = true;
 
-  const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
-    <TouchableOpacity 
-      style={[styles.historyItem]}
-      onPress={() => {
-        router.push({
-          pathname: "/(tabs)/history/details/[id]",
-          params: { id: item.id }
-        });
-      }}
-    >
-      <View style={styles.historyItemContent}>
-        <Text style={[styles.historyTitle, { color: theme.colors.text }]}>{item.title}</Text>
-        <View style={styles.historyDetails}>
-          <Text style={[styles.historyDate, { color: theme.colors.textSecondary }]}>{item.date}</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statsSubRow}>
-              <MaterialCommunityIcons name="comment-question-outline" size={14} color={theme.colors.textSecondary} style={styles.itemIcon} />
-              <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>{item.questions} câu</Text>
+   const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
+      <TouchableOpacity
+        style={styles.historyItem}
+        onPress={() =>
+          router.push({ pathname: '/(tabs)/history/details/[id]', params: { id: item.id } })
+        }
+      >
+        <View style={styles.historyItemContent}>
+          <Text style={[styles.historyTitle, { color: theme.colors.white }]} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <View style={styles.historyDetails}>
+            <Text style={[styles.historyDate, { color: theme.colors.textSecondary }]}>
+              {item.date}
+            </Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statsSubRow}>
+                <MaterialCommunityIcons
+                  name="comment-question-outline"
+                  size={14}
+                  color={theme.colors.textSecondary}
+                  style={styles.itemIcon}
+                />
+                <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
+                  {item.questions} câu
+                </Text>
+              </View>
+              <View style={styles.statsSubRow}>
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={14}
+                  color={theme.colors.textSecondary}
+                  style={[styles.itemIcon, styles.clockIcon]}
+                />
+                <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
+                  {item.duration} phút
+                </Text>
+              </View>
             </View>
-            <View style={styles.statsSubRow}>
-              <MaterialCommunityIcons name="clock-outline" size={14} color={theme.colors.textSecondary} style={[styles.itemIcon, styles.clockIcon]} />
-              <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>{item.duration} phút</Text>
-            </View>                     
           </View>
         </View>
-      </View>
-      <View style={styles.scoreContainer}>
-        <Text style={[styles.historyScore, { 
-          backgroundColor: getScoreColor(item.score),
-          color: '#FFFFFF' 
-        }]}>{item.score.toFixed(1)}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  
+        <View style={styles.scoreContainer}>
+          <Text
+            style={[
+              styles.historyScore,
+              { backgroundColor: getScoreColor(item.score), color: '#fff' },
+            ]}
+          >
+            {item.score.toFixed(1)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
 
   // Hàm xử lý khi bắt đầu phỏng vấn từ trạng thái trống
   const handleStartPractice = () => {
-    router.push('/interview');
+    router.push('/Interview');
   };
 
   // Hàm chọn màu dựa trên điểm số
@@ -103,13 +124,13 @@ export default function HistoryScreen() {
   
   return (
     <BackgroundContainer withOverlay={false}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.filterButton}>
-          <MaterialCommunityIcons name="menu" size={24} color={theme.colors.text} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical:12, paddingHorizontal:10 }}>
+        <TouchableOpacity>
+            <IconSymbol name='menucard.fill' size={30} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Danh sách lịch sử phỏng vấn</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <MaterialCommunityIcons name="filter" size={24} color={theme.colors.text} />
+        <Text style={{ color: '#FFFFFF', fontSize:18, fontWeight:'bold' }}>Lịch sử phỏng vấn</Text>
+        <TouchableOpacity>
+          <MaterialCommunityIcons name="filter-variant" size={30} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -131,10 +152,10 @@ export default function HistoryScreen() {
         <>
           {/* Thống kê tổng quan */}
           <View style={[styles.statsContainer]}>
-            <Text style={[styles.statsTitle, { color: theme.colors.text }]}>Thống kê tổng quan</Text>
+            <Text style={[styles.statsTitle, { color: theme.colors.white }]}>Thống kê tổng quan</Text>
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: theme.colors.text }]}>{statsData.totalSessions}</Text>
+                <Text style={[styles.statValue, { color: '#4ADEDE' }]}>{statsData.totalSessions}</Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Buổi luyện</Text>
               </View>
               <View style={styles.statItem}>
@@ -142,7 +163,7 @@ export default function HistoryScreen() {
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Điểm trung bình</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: theme.colors.text }]}>{statsData.currentWeekSessions}</Text>
+                <Text style={[styles.statValue, { color: theme.colors.white }]}>{statsData.currentWeekSessions}</Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Tuần này</Text>
               </View>
             </View>
@@ -189,8 +210,7 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    marginHorizontal: 20,
+    margin:20,
   },
   searchContainer: {
     flex: 1,
@@ -231,19 +251,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
   statItem: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 10,
   },
-  statsSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -255,54 +268,32 @@ const styles = StyleSheet.create({
   // Styles cho phần danh sách lịch sử
   listContent: {
     paddingBottom: 90,
+    marginHorizontal: 20,
   },
   historyItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
-    marginBottom: 12,
-    marginHorizontal: 20,
+    marginBottom: 10,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
   },
-  historyItemContent: {
-    flex: 1,
-  },
-  historyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  historyDetails: {
-    flex: 1,
-  },
-  historyDate: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  scoreContainer: {
-    marginLeft: 15,
-    justifyContent: 'center',
-  },
-  historyScore: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    overflow: 'hidden',
-    textAlign: 'center',
-  },
-  itemIcon: {
-    marginRight: 4,
-  },
-  clockIcon: {
-    marginLeft: 12,
-  },
-  statText: {
-    fontSize: 13,
+    historyItemContent: { flex: 1 },
+    historyTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6 },
+    historyDetails: { flex: 1 },
+    historyDate: { fontSize: 12.5, marginBottom: 4 },
+    statsRow: { flexDirection: 'row', alignItems: 'center' },
+    statsSubRow: { flexDirection: 'row', alignItems: 'center' },
+    itemIcon: { marginRight: 4 },
+    clockIcon: { marginLeft: 10 },
+    statText: { fontSize: 12.5 },
+    scoreContainer: { marginLeft: 12, justifyContent: 'center' },
+    historyScore: {
+    fontSize: 14, fontWeight: '800',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 999, overflow: 'hidden', textAlign: 'center',
   },
   emptyStateContainer: {
     flex: 1,

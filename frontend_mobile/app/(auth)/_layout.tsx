@@ -1,8 +1,8 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { useTheme } from '../../../context/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 
-export default function SavedLayout() {
+export default function AuthLayout() {
   const { theme } = useTheme();
 
   return (
@@ -18,34 +18,27 @@ export default function SavedLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Đã lưu',
-        }}
-      />
-      {/* <Stack.Screen
-        name="details/[id]"
-        options={{
-          title: 'Chi tiết kịch bản',
+          title: 'Xác thực',
         }}
       />
       <Stack.Screen
-        name="categories"
+        name="login"
         options={{
-          title: 'Danh mục',
+          title: 'Đăng nhập',
         }}
       />
       <Stack.Screen
-        name="practice"
+        name="register"
         options={{
-          title: 'Luyện tập',
-          presentation: 'modal',
+          title: 'Đăng ký',
         }}
       />
       <Stack.Screen
-        name="edit/[id]"
+        name="forgot-password"
         options={{
-          title: 'Chỉnh sửa kịch bản',
+          title: 'Quên mật khẩu',
         }}
-      /> */}
+      />
     </Stack>
   );
 }

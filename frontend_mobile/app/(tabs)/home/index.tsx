@@ -14,6 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
+import AppLayout from '@/components/custom/AppLayout';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ====== Mock: lịch sử gần đây (có thể thay bằng data thật) ======
 type HistoryItem = {
@@ -46,7 +48,7 @@ export default function HomeScreen() {
 
   const top3 = useMemo(() => historyData.slice(0, 3), []);
 
-  const handleStartInterview = () => router.push('/interview');
+  const handleStartInterview = () => router.push('/Interview');
   const handleViewHistory = () => router.push('/(tabs)/history');
   // const handleViewProgress = () => router.push('/(tabs)/progress');
 
@@ -65,7 +67,7 @@ export default function HomeScreen() {
       }
     >
       <View style={styles.historyItemContent}>
-        <Text style={[styles.historyTitle, { color: theme.colors.text }]} numberOfLines={1}>
+        <Text style={[styles.historyTitle, { color: theme.colors.white }]} numberOfLines={1}>
           {item.title}
         </Text>
         <View style={styles.historyDetails}>
@@ -113,137 +115,139 @@ export default function HomeScreen() {
   );
 
   return (
-    <BackgroundContainer withOverlay={false}>
-      <StatusBar barStyle="light-content" />
+    <AppLayout>
+      <SafeAreaView style={{ flex: 1}}  edges={['top','bottom']}>
+        <StatusBar barStyle="light-content" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Top bar brand + actions */}
-        
-        <View style={styles.brandRow}>
-          <View>
-            <Text style={styles.brand}>
-              <Text style={{ color: '#7CF3FF' }}>Prep</Text>
-              <Text style={{ color: '#5ee7d9' }}>Talk</Text>
-            </Text>
-            <Text style={{ color: '#B0BEC5' }}>Giúp bạn luyện tập phỏng vấn</Text>
-          </View>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Top bar brand + actions */}
           
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity style={styles.roundBtn}>
-              <MaterialCommunityIcons name="bell-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.roundBtn}
-              onPress={() => router.push('/(tabs)/settings')}
-            >
-              <MaterialCommunityIcons name="account-circle-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Greeting */}
-        <Text style={styles.hello}>
-          {greeting}, <Text style={{ fontWeight: '800' }}>{user?.username || 'bạn'}</Text>!
-          ✌️
-        </Text>
-
-        {/* Streak card */}
-        <LinearGradient
-          colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
-          start={{ x: 0.05, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.card, styles.cardBorder]}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={styles.brandRow}>
             <View>
-              <Text style={styles.streakTitle}>Chuỗi 7 ngày liên tiếp!</Text>
-              <Text style={styles.streakDesc}>Bạn đang làm rất tốt! Tiếp tục phát huy nhé.</Text>
+              <Text style={styles.brand}>
+                <Text style={{ color: '#7CF3FF' }}>Prep</Text>
+                <Text style={{ color: '#5ee7d9' }}>Talk</Text>
+              </Text>
+              <Text style={{ color: '#B0BEC5' }}>Giúp bạn luyện tập phỏng vấn</Text>
             </View>
-            <MaterialCommunityIcons name="fire" size={22} color="#FFB266" />
+            
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity style={styles.roundBtn}>
+                <MaterialCommunityIcons name="bell-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.roundBtn}
+                onPress={() => router.push('/(tabs)/settings')}
+              >
+                <MaterialCommunityIcons name="account-circle-outline" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
-        </LinearGradient>
 
-        {/* CTA card */}
-        <View style={[styles.ctaCard, styles.cardBorder]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ctaTitle}>Sẵn sàng luyện tập?</Text>
-            <Text style={styles.ctaDesc}>Bắt đầu buổi phỏng vấn tiếp theo</Text>
-          </View>
-          <TouchableOpacity onPress={handleStartInterview} activeOpacity={0.9}>
-            <LinearGradient
-              colors={['#7CF3FF', '#69E6FF']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaBtn}
-            >
-              <Text style={styles.ctaBtnText}>Bắt đầu phỏng vấn ›</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+          {/* Greeting */}
+          <Text style={styles.hello}>
+            {greeting}, <Text style={{ fontWeight: '800' }}>{user?.username || 'bạn'}</Text>!
+            ✌️
+          </Text>
 
-        {/* Robot + stats */}
-        <View style={styles.robotRow}>
-          <Image
-            source={require('../../../assets/images/friendly_robot.png')}
-            style={styles.robot}
-            resizeMode="contain"
-          />
-          <View style={{ flex: 1, gap: 10 }}>
-            <LinearGradient
-              colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
-              start={{ x: 0.05, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.smallStat, styles.cardBorder]}
-            >
-              <View style={styles.statInline}>
-                <Text style={styles.smallLabel}>Tiến trình của bạn</Text>
-                <MaterialCommunityIcons name="trending-up" size={20} color="#7CF3FF" />
+          {/* Streak card */}
+          <LinearGradient
+            colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
+            start={{ x: 0.05, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.card, styles.cardBorder]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View>
+                <Text style={styles.streakTitle}>Chuỗi 7 ngày liên tiếp!</Text>
+                <Text style={styles.streakDesc}>Bạn đang làm rất tốt! Tiếp tục phát huy nhé.</Text>
               </View>
-              <Text style={styles.smallValue}>12</Text>
-              <Text style={styles.smallSub}>Buổi luyện tập đã hoàn thành</Text>
-            </LinearGradient>
+              <MaterialCommunityIcons name="fire" size={22} color="#FFB266" />
+            </View>
+          </LinearGradient>
 
-            <LinearGradient
-              colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
-              start={{ x: 0.05, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.smallStat, styles.cardBorder]}
-            >
-              <View style={styles.statInline}>
-                <Text style={styles.smallLabel}>Điểm trung bình</Text>
-                <MaterialCommunityIcons name="medal-outline" size={20} color="#7CF3FF" />
-              </View>
-              <Text style={styles.smallValue}>8.4/10</Text>
-              <Text style={styles.smallSub}>5 buổi luyện tập gần nhất</Text>
-            </LinearGradient>
-          </View>
-        </View>
-
-        {/* History */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Lịch sử</Text>
-            <TouchableOpacity onPress={handleViewHistory}>
-              <Text style={styles.seeAllText}>Tất cả</Text>
+          {/* CTA card */}
+          <View style={[styles.ctaCard, styles.cardBorder]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ctaTitle}>Sẵn sàng luyện tập?</Text>
+              <Text style={styles.ctaDesc}>Bắt đầu buổi phỏng vấn tiếp theo</Text>
+            </View>
+            <TouchableOpacity onPress={handleStartInterview} activeOpacity={0.9}>
+              <LinearGradient
+                colors={['#7CF3FF', '#69E6FF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaBtn}
+              >
+                <Text style={styles.ctaBtnText}>Bắt đầu phỏng vấn ›</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
-          {top3.map((item) => (
-            <View key={item.id}>{renderHistoryItem({ item })}</View>
-          ))}
-        </View>
+          {/* Robot + stats */}
+          <View style={styles.robotRow}>
+            <Image
+              source={require('../../../assets/images/Robot.png')}
+              style={styles.robot}
+              resizeMode="contain"
+            />
+            <View style={{ flex: 1, gap: 10 }}>
+              <LinearGradient
+                colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
+                start={{ x: 0.05, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.smallStat, styles.cardBorder]}
+              >
+                <View style={styles.statInline}>
+                  <Text style={styles.smallLabel}>Tiến trình của bạn</Text>
+                  <MaterialCommunityIcons name="trending-up" size={20} color="#7CF3FF" />
+                </View>
+                <Text style={styles.smallValue}>12</Text>
+                <Text style={styles.smallSub}>Buổi luyện tập đã hoàn thành</Text>
+              </LinearGradient>
 
-        <View style={{ height: 80 }} />
-      </ScrollView>
-    </BackgroundContainer>
+              <LinearGradient
+                colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
+                start={{ x: 0.05, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.smallStat, styles.cardBorder]}
+              >
+                <View style={styles.statInline}>
+                  <Text style={styles.smallLabel}>Điểm trung bình</Text>
+                  <MaterialCommunityIcons name="medal-outline" size={20} color="#7CF3FF" />
+                </View>
+                <Text style={styles.smallValue}>8.4/10</Text>
+                <Text style={styles.smallSub}>5 buổi luyện tập gần nhất</Text>
+              </LinearGradient>
+            </View>
+          </View>
+
+          {/* History */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Lịch sử</Text>
+              <TouchableOpacity onPress={handleViewHistory}>
+                <Text style={styles.seeAllText}>Tất cả</Text>
+              </TouchableOpacity>
+            </View>
+
+            {top3.map((item) => (
+              <View key={item.id}>{renderHistoryItem({ item })}</View>
+            ))}
+          </View>
+
+          <View style={{ height: 80 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </AppLayout>
   );
 }
 
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    padding: 20,
+    
   },
 
   // Brand row

@@ -11,6 +11,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../../context/ThemeContext'; 
 import BackgroundContainer from '../../../../components/common/BackgroundContainer'; 
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type QAItem = {
   id: string;
@@ -51,6 +53,7 @@ export default function HistoryDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Lấy data theo id (fallback về '1' để demo)
   const data: DetailData = useMemo(() => {
@@ -77,7 +80,7 @@ export default function HistoryDetailScreen() {
       activeOpacity={0.7}
     >
       <View style={{ flex: 1 }}>
-        <Text style={[styles.qaTitle, { color: theme.colors.text }]}>
+        <Text style={[styles.qaTitle, { color: theme.colors.white }]}>
           {`Câu hỏi ${index + 1}`}
         </Text>
         <Text style={[styles.qaQuestion, { color: theme.colors.textSecondary }]}>
@@ -102,20 +105,19 @@ export default function HistoryDetailScreen() {
     <BackgroundContainer withOverlay={false}>
       <SafeAreaView />
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.text} />
+      <View style={ styles.header}>
+        <TouchableOpacity onPress={() => {router.back()}}>
+            <IconSymbol name='chevron.left' size={30} color="#FFFFFF" />
         </TouchableOpacity>
-
         <Text
-          numberOfLines={1}
-          style={[styles.headerTitle, { color: theme.colors.text }]}
+        numberOfLines={1}
+        style={[styles.headerTitle]}
         >
           {data.title}
         </Text>
-
+        
         <TouchableOpacity style={styles.headerBtn} onPress={() => { /* share */ }}>
-          <MaterialCommunityIcons name="share-variant" size={22} color={theme.colors.text} />
+          <MaterialCommunityIcons name="share-variant" size={24} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -141,7 +143,7 @@ export default function HistoryDetailScreen() {
         </View>
 
       {/* Danh sách câu trả lời */}
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+      <Text style={[styles.sectionTitle]}>
         Danh sách câu trả lời
       </Text>
 
@@ -149,14 +151,14 @@ export default function HistoryDetailScreen() {
         data={data.qa}
         keyExtractor={(i) => i.id}
         renderItem={renderQAItem}
-        contentContainerStyle={{ paddingBottom: 130 }} // Tăng padding cho danh sách để tránh bị che bởi nút và tab bar
-      />
 
+        contentContainerStyle={{paddingBottom: 130 }} // Tăng padding cho danh sách để tránh bị che bởi nút và tab bar
+      />
       {/* Nút tiếp tục luyện tập (fixed) */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => router.push('/interview')}
+          onPress={() => router.push('/Interview')}
           activeOpacity={0.9}
         >
           <Text style={styles.primaryBtnText}>Tiếp tục luyện tập</Text>
@@ -168,16 +170,7 @@ export default function HistoryDetailScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(217, 217, 217, 0.15)',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal:10, paddingVertical:12
   },
   headerBtn: {
     width: 40,
@@ -187,10 +180,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#FFFFFF', fontSize:18, fontWeight: 'bold',
   },
 
   scoreCard: {
@@ -235,8 +225,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginHorizontal: 20,
     marginBottom: 10,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
+    color:"#FFFFFF"
   },
 
   qaItem: {

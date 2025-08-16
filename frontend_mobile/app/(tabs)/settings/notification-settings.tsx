@@ -137,7 +137,7 @@ export default function NotificationSettingsScreen() {
     <BackgroundContainer withOverlay={false}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{flexGrow: 1, paddingBottom: 40}}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{flexGrow: 1}}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -208,8 +208,9 @@ export default function NotificationSettingsScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom:12,
+    paddingHorizontal: 10,
     marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',

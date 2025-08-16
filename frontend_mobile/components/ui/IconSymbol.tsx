@@ -33,10 +33,16 @@ const MAPPING = {
   'house.fill': { lib: 'MaterialCommunityIcons', name: 'home-outline' },
   'clock.fill': { lib: 'MaterialIcons', name: 'access-time' },
   'bookmark.fill': { lib: 'MaterialCommunityIcons', name: 'bookmark-outline' },
-  'chart.bar.fill': { lib: 'MaterialCommunityIcons', name: 'trending-up' },
-  'gearshape.fill': { lib: 'MaterialCommunityIcons', name: 'cog-outline' },
-  'chevron.left.forwardslash.chevron.right': { lib: 'MaterialIcons', name: 'code' },
+  'chart.bar.fill': { lib: 'MaterialIcons', name: 'bar-chart' },
+  'gear': { lib: 'MaterialCommunityIcons', name: 'cog-outline' },
+  'chevron.left': { lib: 'MaterialIcons', name: 'chevron-left' },
   'chevron.right': { lib: 'MaterialIcons', name: 'chevron-right' },
+  'eye.fill': { lib: 'MaterialCommunityIcons', name: 'eye-outline' },
+  'eye.slash.fill': { lib: 'MaterialCommunityIcons', name: 'eye-off-outline' },
+  'bell.fill': { lib: 'MaterialCommunityIcons', name: 'bell' },
+  'menucard.fill': { lib: 'MaterialCommunityIcons', name: 'menu' },
+  '': { lib: 'MaterialIcons', name: 'help-outline' }
+
 } as unknown as IconMapping;
 
 /**

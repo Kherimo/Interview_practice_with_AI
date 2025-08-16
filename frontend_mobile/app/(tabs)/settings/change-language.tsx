@@ -126,8 +126,9 @@ export default function ChangeLanguageScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 10,
     marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',

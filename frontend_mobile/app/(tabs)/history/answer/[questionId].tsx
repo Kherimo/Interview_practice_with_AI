@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../../context/ThemeContext'; 
 import BackgroundContainer from '../../../../components/common/BackgroundContainer';
 import InfoPopup from '../../../../components/common/InfoPopup';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 // Định nghĩa type cho chi tiết câu trả lời
 type AnswerDetail = {
@@ -112,20 +113,19 @@ export default function HistoryAnswerDetailScreen() {
       <SafeAreaView style={{ flex: 0 }} />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.text} />
+      <View style={ styles.header}>
+        <TouchableOpacity onPress={() => {router.back()}}>
+            <IconSymbol name='chevron.left' size={30} color="#FFFFFF" />
         </TouchableOpacity>
-
         <Text
-          numberOfLines={1}
-          style={[styles.headerTitle, { color: theme.colors.text }]}
+        numberOfLines={1}
+        style={[styles.headerTitle]}
         >
           {data.interviewTitle}
         </Text>
-
-        <TouchableOpacity style={styles.headerBtn}>
-          <MaterialCommunityIcons name="share-variant" size={22} color={theme.colors.text} />
+        
+        <TouchableOpacity style={styles.headerBtn} onPress={() => { /* share */ }}>
+          <MaterialCommunityIcons name="share-variant" size={24} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -250,16 +250,7 @@ export default function HistoryAnswerDetailScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(217, 217, 217, 0.15)',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal:10, paddingVertical:12
   },
   headerBtn: {
     width: 40,
@@ -271,8 +262,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   scrollContent: {
     paddingHorizontal: 20,
