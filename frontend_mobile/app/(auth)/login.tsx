@@ -1,17 +1,18 @@
 import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import AppLayout from '@/components/custom/AppLayout'
-import { Colors } from '@/constants/Colors'
 import { IconSymbol } from '@/components/ui/IconSymbol'
 import Checkbox from 'expo-checkbox'
 import ButtonCustom from '@/components/custom/ButtonCustom'
 import {  useRouter } from 'expo-router'
+import { useTheme } from '@/context/ThemeContext'
 
 const LoginScreen = () => {
    const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const {theme} = useTheme();
 
    return (
     <AppLayout>
@@ -65,7 +66,7 @@ const LoginScreen = () => {
         <ButtonCustom
           title="Đăng nhập"
           onPress={() => router.replace('/(tabs)/home')}
-          buttonStyle={{ backgroundColor: Colors.aqua, borderRadius: 12, marginBottom:10 }}
+          buttonStyle={{ backgroundColor: theme.colors.secondary, borderRadius: 12, marginBottom:10 }}
           textStyle={{ fontSize: 16, fontWeight: 'bold' }}
         />
 
@@ -73,7 +74,7 @@ const LoginScreen = () => {
         <View style={styles.bottomText}>
           <Text style={{ color: "#C2C2C2" }}>Bạn chưa có tài khoản? </Text>
           <TouchableOpacity onPress={() => router.replace('/(auth)/register')}>
-            <Text style={{ color: Colors.aqua, fontWeight: "600" }}>
+            <Text style={{ color: theme.colors.secondary, fontWeight: "600" }}>
               Đăng ký
             </Text>
           </TouchableOpacity>
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: Colors.aqua,
+    backgroundColor: '#4ADEDE',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",

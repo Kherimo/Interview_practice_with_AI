@@ -29,9 +29,9 @@ const SetUpInfor = () => {
     const { mode } = useLocalSearchParams();
     const handleStartInterviews = () => {
         if (mode === 'interview') {
-            router.push('/Interview/InterviewVoice');
+            router.push('/interview/interviewVoice');
         }else if (mode === 'practice') {
-            router.push('/Interview/InterviewChat');
+            router.push('/interview/interviewChat');
 
         }
     };

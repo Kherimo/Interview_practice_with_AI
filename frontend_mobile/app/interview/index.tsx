@@ -12,13 +12,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 const InterviewModeScreen = () => {
     const handleStartPractice = () => {
         router.push({
-            pathname:'/Interview/SetUpInfor',
+            pathname:'/interview/setUpInfor',
             params: { mode: 'practice' }
         });
     };
     const handleStartInterview = () => {
         router.push({
-            pathname:'/Interview/SetUpInfor',
+            pathname:'/interview/setUpInfor',
             params: { mode: 'interview' }
         });
     };

@@ -48,7 +48,7 @@ export default function HomeScreen() {
 
   const top3 = useMemo(() => historyData.slice(0, 3), []);
 
-  const handleStartInterview = () => router.push('/Interview');
+  const handleStartInterview = () => router.push('/interview');
   const handleViewHistory = () => router.push('/(tabs)/history');
   // const handleViewProgress = () => router.push('/(tabs)/progress');
 

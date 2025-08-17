@@ -70,7 +70,7 @@ export default function ResultScreen() {
       style={[styles.qaItem, styles.cardBorder]}
       onPress={() => {
         router.push({
-          pathname: "/Interview/InterviewResultDetails/[questionId]",
+          pathname: "/interview/interviewResultDetails/[questionId]",
           params: { questionId: item.id, interviewId: data.id }
         });
       }}
@@ -161,7 +161,7 @@ export default function ResultScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => router.push('/Interview')}
+          onPress={() => router.push('/interview')}
           activeOpacity={0.9}
         >
           <Text style={styles.primaryBtnText}>Tiếp tục luyện tập</Text>

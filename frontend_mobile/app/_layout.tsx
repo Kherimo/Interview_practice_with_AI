@@ -49,7 +49,7 @@ function NavigationRoot() {
       <Stack screenOptions={{ headerShown: false }} initialRouteName='(auth)'>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="Interview" options={{ headerShown: false }} />
+        <Stack.Screen name="interview" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={theme.dark ? 'light' : 'dark'} />
@@ -73,38 +73,6 @@ export default function RootLayout() {
     );
   }
 
-// Layout wrapper with theme context integration
-function NavigationRoot() {
-  const { theme } = useTheme();
-  const colorScheme = theme.dark ? 'dark' : 'light';
-  
-  // Use built-in navigation themes but customize them with our theme colors
-  const navigationTheme = colorScheme === 'dark'
-    ? {
-        ...DarkTheme,
-        colors: {
-          ...DarkTheme.colors,
-          primary: theme.colors.primary,
-          background: theme.colors.background,
-          card: theme.colors.card,
-          text: theme.colors.text,
-          border: theme.colors.border,
-          notification: theme.colors.notification,
-        }
-      }
-    : {
-        ...DefaultTheme,
-        colors: {
-          ...DefaultTheme.colors,
-          primary: theme.colors.primary,
-          background: theme.colors.background,
-          card: theme.colors.card,
-          text: theme.colors.text,
-          border: theme.colors.border,
-          notification: theme.colors.notification,
-        }
-      };
-  
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <ThemeProvider>
@@ -117,7 +85,7 @@ function NavigationRoot() {
     </SafeAreaProvider>
   );
 }
-}
+
 const styles = StyleSheet.create({
   loading: {
     flex: 1,

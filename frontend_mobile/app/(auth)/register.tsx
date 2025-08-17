@@ -1,7 +1,6 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import React, { useState } from 'react';
 import AppLayout from '@/components/custom/AppLayout';
-import { Colors } from '@/constants/Colors';
 import Checkbox from 'expo-checkbox';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import ButtonCustom from '@/components/custom/ButtonCustom';
@@ -88,8 +87,8 @@ const RegisterScreen = () => {
         {/* Button Đăng ký */}
         <ButtonCustom
           title="Đăng ký"
-          onPress={() => {router.replace('/SetUpProfile')}}
-          buttonStyle={{ backgroundColor: Colors.aqua, borderRadius: 12, marginBottom: 10 }}
+          onPress={() => {router.replace('/setUpProfile')}}
+          buttonStyle={{ backgroundColor: '#4ADEDE', borderRadius: 12, marginBottom: 10 }}
           textStyle={{ fontSize: 16, fontWeight: 'bold' }}
         />
 
@@ -97,7 +96,7 @@ const RegisterScreen = () => {
         <View style={styles.bottomText}>
           <Text style={{ color: '#C2C2C2' }}>Bạn đã có tài khoản? </Text>
           <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-            <Text style={{ color: Colors.aqua, fontWeight: '600' }}>
+            <Text style={{ color: '#4ADEDE', fontWeight: '600' }}>
               Đăng nhập
             </Text>
           </TouchableOpacity>
@@ -162,7 +161,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   linkText: {
-    color: Colors.aqua,
+    color: '#4ADEDE',
     fontWeight: '600',
   },
   bottomText: {
