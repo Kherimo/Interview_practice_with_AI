@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import InfoPopup from '../../../components/common/InfoPopup';
 import { IconWrapper } from '../../../components/common/IconWrapper';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function EditProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <IconSymbol name="chevron.left" size={30} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Thay đổi hồ sơ</Text>
           <View style={styles.backButton}>
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',

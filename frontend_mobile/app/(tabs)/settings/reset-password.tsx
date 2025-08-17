@@ -90,7 +90,7 @@ export default function ResetPasswordScreen() {
   // Xử lý quên mật khẩu - điều hướng đến màn hình quên mật khẩu
   const handleForgotPassword = () => {
     // Điều hướng đến màn hình quên mật khẩu sử dụng đường dẫn tuyệt đối
-    router.push('/auth/forgot-password');
+    router.push('/(auth)/forgot-password');
   };
 
   return (
@@ -140,7 +140,8 @@ export default function ResetPasswordScreen() {
             {/* Content Container */}
             <ScrollView 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{flexGrow: 1}}
+              contentContainerStyle={{ paddingHorizontal:20, paddingVertical:30, borderWidth:1}}
+              
             >
               <View style={styles.contentContainer}>
                 {/* Icon */}
@@ -270,9 +271,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   header: {
-    paddingTop: 10,
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingTop: 12,
+    paddingBottom:12,
+    paddingHorizontal: 10,
+    
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -285,17 +287,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
     flex: 1,
   },
   contentContainer: {
-    flex: 1,
+
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 20,
   },
   iconContainer: {
     width: 80,

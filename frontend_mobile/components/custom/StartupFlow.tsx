@@ -21,15 +21,15 @@
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Asset } from 'expo-asset';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import SplashScreen from '@/components/custom/SplashScreen';
-// import OnbordingScreen from '@/components/custom/OnbordingScreen';
+import OnboardingScreen from '@/components/custom/OnboardingScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const bgImage = require('../../assets/images/background.png');
+
 interface StartupFlowProps {
-    children: React.ReactNode;
-    onFinish: () => void;
+  children: React.ReactNode;
 }
 
 export default function StartupFlow({ children }: StartupFlowProps) {
@@ -57,10 +57,7 @@ export default function StartupFlow({ children }: StartupFlowProps) {
   useEffect(() => {
     const preload = async () => {
       try {
-        await Promise.all([
-          Asset.fromModule(bgImage).downloadAsync(),
-          // preload thêm ảnh nếu cần
-        ]);
+        await Asset.fromModule(bgImage).downloadAsync();
         setReady(true);
       } catch (error) {
         console.error('Error preloading assets:', error);
@@ -88,19 +85,19 @@ export default function StartupFlow({ children }: StartupFlowProps) {
     );
   }
 
-//   // Onboarding
-//   if (!isOnboardingCompleted) {
-//     return (
-//       <OnbordingScreen
-//         onFinish={async () => {
-//           await AsyncStorage.setItem('onboardingCompleted', 'true');
-//           setOnboardingCompleted(true);
-//         }}
-//       />
-//     );
-//   }
+  // Onboarding
+  if (!isOnboardingCompleted) {
+    return (
+      <OnboardingScreen
+        onFinish={async () => {
+          await AsyncStorage.setItem('onboardingCompleted', 'true');
+          setOnboardingCompleted(true);
+        }}
+      />
+    );
+  }
 
-  // Trả về app chính
+  // Sau khi splash + onboarding xong → render children
   return children;
 }
 

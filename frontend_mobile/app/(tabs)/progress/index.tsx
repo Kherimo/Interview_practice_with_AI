@@ -1,13 +1,16 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+ 
 import { useTheme } from '../../../context/ThemeContext';
+ 
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 
 const mockScores = [
@@ -40,14 +43,13 @@ export default function ProgressScreen() {
 
   return (
     <BackgroundContainer withOverlay={false}>
+      <StatusBar barStyle="light-content" />
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Tiến độ của bạn
-        </Text>
+      <View style={{ alignItems: 'center', paddingVertical:12, paddingHorizontal:10 }}>
+          <Text style={{ color: '#FFFFFF', fontSize:18, fontWeight: 'bold' }}>Tiến độ của bạn</Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
         {/* 3 stats */}
         <View style={styles.statRow}>
           <View style={[styles.statCard]} >
@@ -145,13 +147,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 18, fontWeight: '800', textAlign: 'center' },
 
-  statRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 12 },
+  statRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   statCard: {
-    flex: 1,
+    flexDirection: 'column',
     height: 82,
     borderRadius: 14,
     padding: 12,
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
@@ -161,8 +164,7 @@ const styles = StyleSheet.create({
   statLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12.5 },
 
   block: {
-    marginHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 20,
     padding: 14,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.15)',

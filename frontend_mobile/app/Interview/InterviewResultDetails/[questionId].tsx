@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext'; 
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import InfoPopup from '../../../components/common/InfoPopup';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 // Định nghĩa type cho chi tiết câu trả lời
 type ResultAnswerDetail = {
@@ -114,18 +115,18 @@ export default function ResultAnswerDetailScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.text} />
+          <IconSymbol name="chevron.left" size={30} color={theme.colors.white} />
         </TouchableOpacity>
 
         <Text
           numberOfLines={1}
-          style={[styles.headerTitle, { color: theme.colors.text }]}
+          style={[styles.headerTitle, { color: theme.colors.white }]}
         >
           {data.interviewTitle}
         </Text>
 
         <TouchableOpacity style={styles.headerBtn}>
-          <MaterialCommunityIcons name="share-variant" size={22} color={theme.colors.text} />
+          <MaterialCommunityIcons name="share-variant" size={22} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -250,15 +251,15 @@ export default function ResultAnswerDetailScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingHorizontal: 10,
+    
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(217, 217, 217, 0.15)',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    // backgroundColor: 'rgba(217, 217, 217, 0.15)',
+    // borderBottomLeftRadius: 12,
+    // borderBottomRightRadius: 12,
     marginBottom: 10,
   },
   headerBtn: {
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   scrollContent: {

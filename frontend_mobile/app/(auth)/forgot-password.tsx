@@ -81,7 +81,7 @@ export default function ForgotPasswordScreen() {
         message="Mã xác thực đã được gửi đến email của bạn!"
         onClose={() => {
           setShowSuccess(false);
-          router.replace('/auth/login');
+          router.replace('/login');
         }}
         type="success"
       />
@@ -93,7 +93,7 @@ export default function ForgotPasswordScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.inner}>
             {/* Header */}
-            <View style={styles.header}>
+            {/* <View style={styles.header}>
               <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <IconWrapper Component={Ionicons} name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
@@ -101,7 +101,7 @@ export default function ForgotPasswordScreen() {
                 <View style={styles.backButton}>
               <IconWrapper Component={Ionicons} name="arrow-back" size={24} color="transparent" />
           </View>
-            </View>
+            </View> */}
             
             {/* Content Container */}
             <View style={styles.contentContainer}>
@@ -146,7 +146,7 @@ export default function ForgotPasswordScreen() {
                 {/* Remember Password */}
                 <TouchableOpacity 
                   style={styles.rememberPasswordContainer}
-                  onPress={() => router.push('/auth/login')}
+                  onPress={() => router.push('/login')}
                 >
                   <Text style={styles.rememberPasswordText}>Nhớ mật khẩu? <Text style={styles.loginText}>Đăng nhập</Text></Text>
                 </TouchableOpacity>
@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: 'flex-start',
+    
   },
   header: {
     paddingTop: 10,
@@ -194,6 +195,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 30,
     paddingVertical: 30,
+    justifyContent:'center'
   },
   iconContainer: {
     width: 80,

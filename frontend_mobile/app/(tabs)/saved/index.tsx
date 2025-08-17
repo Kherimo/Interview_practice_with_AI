@@ -62,7 +62,7 @@ const MOCK_SAVED: SavedItem[] = [
   },
 ];
 
-const FILTERS = ['All', 'Hành vi', 'Kỹ thuật'];
+const FILTERS = ['Tất cả', 'Hành vi', 'Kỹ thuật'];
 
 export default function SavedScreen() {
   const { theme } = useTheme();
@@ -95,7 +95,7 @@ export default function SavedScreen() {
         />
       </TouchableOpacity>
 
-      <Text style={[styles.cardTitle, { color: theme.colors.text }]} numberOfLines={1}>
+      <Text style={[styles.cardTitle, { color: theme.colors.white }]} numberOfLines={1}>
         {item.title}
       </Text>
 
@@ -133,7 +133,7 @@ export default function SavedScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerBtn} />
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.white }]}>
           Câu trả lời đã lưu
         </Text>
         <View style={styles.headerBtn} />
@@ -190,18 +190,14 @@ export default function SavedScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(217, 217, 217, 0.15)',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
     marginBottom: 8,
   },
   headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '800' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 'bold' },
 
   searchRow: {
     flexDirection: 'row',
@@ -227,7 +223,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  chipsRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
+  chipsRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 20 },
   chip: { height: 32, borderRadius: 16, paddingHorizontal: 14, justifyContent: 'center' },
   chipActive: { backgroundColor: '#7CF3FF' },
   chipInactive: { backgroundColor: 'rgba(255,255,255,0.12)' },
@@ -252,7 +248,7 @@ const styles = StyleSheet.create({
 
   cardFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   scoreChip: {
-    color: '#00141A',
+    color: '#ffffffff',
     fontWeight: '800',
     borderRadius: 10,
     paddingHorizontal: 8,

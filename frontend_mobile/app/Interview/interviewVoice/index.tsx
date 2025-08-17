@@ -15,6 +15,7 @@ import BackgroundContainer from '@/components/common/BackgroundContainer';
 import { useTheme } from '@/context/ThemeContext';
 import InfoPopup from '@/components/common/InfoPopup';
 import ConfirmPopup from '@/components/common/ConfirmPopup';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 // (Tùy chọn tích hợp ghi âm thật): import { Audio } from 'expo-av';
 
@@ -38,7 +39,7 @@ export default function VoiceInterviewScreen() {
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [timer, setTimer] = useState(0);
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [transcript, setTranscript] = useState('');
   const [showEndPopup, setShowEndPopup] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
@@ -95,58 +96,74 @@ export default function VoiceInterviewScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.hbtn} onPress={() => setShowCancelPopup(true)}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color={theme.colors.text} />
+          <IconSymbol name="chevron.left" size={30} color={theme.colors.white} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center', flex: 1 }}>
-          <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>
+          <Text style={[styles.title, { color: theme.colors.white }]} numberOfLines={1}>
             {title}
           </Text>
           <Text style={styles.subtitle}>{`Câu hỏi số ${questionIndex} trên ${questionTotal}`}</Text>
         </View>
         <TouchableOpacity style={styles.hbtn} onPress={() => setShowEndPopup(true)}>
-          <MaterialCommunityIcons name="page-next-outline" size={20} color={theme.colors.text} />
+          <MaterialCommunityIcons name="page-next-outline" size={20} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
       {/* AI interviewer icon */}
       <View style={styles.aiIconWrap}>
-        <View style={styles.aiIconCircle}>
+        {/* <View style={styles.aiIconCircle}> */}
           {/* <MaterialCommunityIcons name="robot-happy-outline" size={26} color="#00141A" /> */}
-          <Image 
-            source={require('../../assets/images/robot.png')} 
+          {/* <Image 
+            source={require('../../../assets/images/Robot.png')} 
             style={styles.avatarImage} 
             resizeMode="cover" 
-          />
-        </View>
-        <Text style={styles.aiLabel}>AI phỏng vấn</Text>
+          /> */}
+        {/* </View> */}
+        {/* <Text style={styles.aiLabel}></Text> */}
       </View>
 
       {/* Question bubble */}
-      <LinearGradient
-        colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
-        start={{ x: 0.05, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.bubble, styles.cardBorder]}
+      <View
+        
+        style={[styles.bubble]}
       >
-        <View style={styles.bubbleHeader}>
-          <Text style={styles.bubbleTag}>Behavioral Question</Text>
-          <View style={styles.bubbleActions}>
-            <TouchableOpacity style={styles.iconRound}>
-              <MaterialCommunityIcons name="volume-high" size={16} color="#00141A" />
-            </TouchableOpacity>
-            {/* <TouchableOpacity><Text style={styles.replayText}>Replay</Text></TouchableOpacity> */}
+        <View
+            style={styles.aIQuestion}>
+          <View style={styles.questionWrapper}>
+            <View style={styles.questionBox}>
+              <View style={styles.bubbleHeader}>
+                <Text style={styles.bubbleTag}>Behavioral Question</Text>
+                <View style={styles.bubbleActions}>
+                  <TouchableOpacity style={styles.iconRound}>
+                    <MaterialCommunityIcons name="volume-high" size={16} color="#00141A" />
+                  </TouchableOpacity>
+                  {/* <TouchableOpacity><Text style={styles.replayText}>Replay</Text></TouchableOpacity> */}
+                </View>
+              </View>
+
+              <Text style={styles.bubbleText}>{QUESTION}</Text>
+
+              <View style={{ height: 10 }} />
+              <View style={styles.tinyWave}>
+                {bars.map((_, i) => (
+                  <View key={i} style={styles.tinyBar} />
+                ))}
+              </View>
+            </View>
+
+            {/* Bubble tail */}
+            <View style={styles.bubbleTail} />
           </View>
+
+          {/* Avatar bên dưới trái */}
+          <Image
+            source={require('@/assets/images/Robot.png')}
+            style={styles.avatar}
+            resizeMode="contain"
+          />
         </View>
 
-        <Text style={styles.bubbleText}>{QUESTION}</Text>
-
-        <View style={{ height: 10 }} />
-        <View style={styles.tinyWave}>
-          {bars.map((_, i) => (
-            <View key={i} style={styles.tinyBar} />
-          ))}
-        </View>
-      </LinearGradient>
+      </View>
 
       {/* Middle area: Mic / Recording / Answered */}
       <View style={{ alignItems: 'center', marginTop: 18 }}>
@@ -220,7 +237,7 @@ export default function VoiceInterviewScreen() {
         buttonText="Xem kết quả"
         onClose={() => {
           setShowEndPopup(false);
-          router.push('/interview/result');
+          router.push('/interview/interviewResult');
         }}
         type="success"
       />
@@ -245,14 +262,14 @@ export default function VoiceInterviewScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingTop: 8,
     paddingBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(217, 217, 217, 0.15)',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    // borderBottomLeftRadius: 12,
+    // borderBottomRightRadius: 12,
   },
   hbtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 16, fontWeight: '800' },
@@ -270,18 +287,32 @@ const styles = StyleSheet.create({
 
   bubble: { marginHorizontal: 16, borderRadius: 16, padding: 14, marginTop: 4 },
   cardBorder: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
-  bubbleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  bubbleTag: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '700' },
-  bubbleActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  replayText: { color: '#DFF9FF' },
-  iconRound: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#7CF3FF',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  bubbleText: { color: '#FFFFFF', marginTop: 8, lineHeight: 20 },
+  aIQuestion: { flexDirection:"column", alignItems:"flex-start", marginTop:20, marginBottom:20 },
+questionWrapper: { alignSelf:"flex-end", maxWidth:"85%", position:"relative" },
+questionBox: { padding:16, backgroundColor:"rgba(255,255,255,0.15)", borderTopLeftRadius:16, borderTopRightRadius:16, borderBottomRightRadius:16 },
+bubbleTail: {
+  position:"absolute",
+  left:0,
+  bottom:-15,
+  width:0,
+  height:0,
+  borderTopWidth:10,
+  borderBottomWidth:6,
+  borderRightWidth:10,
+  borderStyle:"solid",
+  borderTopColor:"rgba(255,255,255,0.15)",
+  borderBottomColor:"transparent",
+  borderRightColor:"transparent",
+},
+bubbleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+bubbleTag: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '700' },
+bubbleActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+iconRound: { width:28, height:28, borderRadius:14, backgroundColor:'#7CF3FF', alignItems:'center', justifyContent:'center' },
+bubbleText: { color:'#FFFFFF', marginTop:8, lineHeight:20 },
+tinyWave: { flexDirection:'row', gap:3, alignItems:'flex-end', height:12 },
+tinyBar: { width:3, height:8, borderRadius:2, backgroundColor:'#7CF3FF' },
+avatar: { width:80, height:120, borderRadius:26, marginTop:6 },
 
-  tinyWave: { flexDirection: 'row', gap: 3, alignItems: 'flex-end', height: 12 },
-  tinyBar: { width: 3, height: 8, borderRadius: 2, backgroundColor: '#7CF3FF' },
 
   micBtn: {
     width: 78, height: 78, borderRadius: 39, backgroundColor: '#7CF3FF',

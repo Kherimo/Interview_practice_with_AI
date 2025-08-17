@@ -19,14 +19,14 @@ export default function TabLayout() {
         headerShown: false,
         tabBarBackground: TabBarBackground,
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 60 + insets.bottom : 60,
+          height: Platform.OS === 'ios' ? 60 + insets.bottom : 65,
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
           elevation: 8,
           borderTopWidth: 0,
-          backgroundColor: Platform.OS === 'ios' ? 'rgba(30, 10, 60, 0.9)' : theme.colors.bottomNav,
+          backgroundColor:  'rgba(30, 10, 60, 0.9)',
           position: 'absolute',
-          left: 16,
-          right: 16,
+          left: 0,
+          right: 0,
           borderRadius: 12,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 4 },
@@ -52,19 +52,19 @@ export default function TabLayout() {
       />
       
       <Tabs.Screen
-        name="history"
-        options={{
-          title: 'Lịch sử',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="progress"
         options={{
           title: 'Tiến độ',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
         }}
       />
+        <Tabs.Screen
+          name="history"
+          options={{
+            title: 'Lịch sử',
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+          }}
+        />
       <Tabs.Screen
         name="saved"
         options={{
@@ -76,11 +76,39 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Cài đặt',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
         }}
       />
       
+      {/* Ẩn các màn hình phụ để tránh cảnh báo */}
+      {/* <Tabs.Screen
+        name="practice"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="interview/[id]"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="topic/[id]"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="recommendations"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="details"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="goals"
+        options={{ href: null }}
+      /> */}
     </Tabs>
-
   );
 }
