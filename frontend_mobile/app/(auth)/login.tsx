@@ -1,34 +1,26 @@
-import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import AppLayout from '@/components/custom/AppLayout'
 import { IconSymbol } from '@/components/ui/IconSymbol'
 import ButtonCustom from '@/components/custom/ButtonCustom'
 import { useRouter } from 'expo-router'
 import { useTheme } from '@/context/ThemeContext'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useAuth } from '@/context/AuthContext'
 
 const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const { theme } = useTheme();
+  const {theme} = useTheme();
+  const { signIn } = useAuth();
 
   const handleLogin = async () => {
-    // ở đây bạn có thể thêm validate email, password + call API login
-
-    // kiểm tra xem đã lưu flag isFirstLogin chưa
-    const firstLogin = await AsyncStorage.getItem("isFirstLogin");
-
-    if (!firstLogin) {
-      // lần đầu -> set flag để lần sau không vào nữa
-      await AsyncStorage.setItem("isFirstLogin", "false");
-      router.replace("/setUpProfile");
-    } else {
-      // không phải lần đầu
-      router.replace("/(tabs)/home");
+    const success = await signIn(email, password);
+    if (success) {
+      router.replace('/(tabs)/home');
     }
-  };
+  }
 
   return (
     <AppLayout>
@@ -87,12 +79,8 @@ const LoginScreen = () => {
         <ButtonCustom
           title="Đăng nhập"
           onPress={handleLogin}
-          buttonStyle={{
-            backgroundColor: theme.colors.secondary,
-            borderRadius: 12,
-            marginBottom: 10,
-          }}
-          textStyle={{ fontSize: 16, fontWeight: "bold" }}
+          buttonStyle={{ backgroundColor: theme.colors.secondary, borderRadius: 12, marginBottom:10 }}
+          textStyle={{ fontSize: 16, fontWeight: 'bold' }}
         />
 
         {/* Chuyển sang Đăng ký */}
@@ -145,6 +133,7 @@ const styles = StyleSheet.create({
     paddingRight: 40,
     borderRadius: 12,
     borderWidth: 0,
+    borderColor: "transparent",
     backgroundColor: "rgba(217,217,217,0.15)",
     color: "#fff",
   },

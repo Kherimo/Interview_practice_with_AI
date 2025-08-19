@@ -44,7 +44,7 @@ export default function VoiceInterviewScreen() {
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [timer, setTimer] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | number | null>(null);
   const [transcript, setTranscript] = useState('');
   const [showEndPopup, setShowEndPopup] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
@@ -109,7 +109,7 @@ export default function VoiceInterviewScreen() {
     const stopWave = () => anims.forEach(a => a.stopAnimation());
 
     if (phase === 'recording') {
-      intervalRef.current = setInterval(() => setTimer(t => t + 1), 1000);
+      intervalRef.current = setInterval(() => setTimer(t => t + 1), 1000) as unknown as NodeJS.Timeout;
       startWave();
       // (Nếu dùng expo-av thì ở đây gọi Audio.Recording.createAsync... )
     } else {
