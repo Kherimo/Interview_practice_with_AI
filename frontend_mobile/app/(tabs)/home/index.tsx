@@ -187,7 +187,7 @@ export default function HomeScreen() {
           {/* Robot + stats */}
           <View style={styles.robotRow}>
             <Image
-              source={require('../../../assets/images/Robot.png')}
+              source={require('../../../assets/images/robot.png')}
               style={styles.robot}
               resizeMode="contain"
             />

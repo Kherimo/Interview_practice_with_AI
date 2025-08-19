@@ -18,6 +18,17 @@ def create_access_token(user_id):
         algorithm='HS256',
     )
 
+
+def serialize_user(user):
+    return {
+        'id': user.id,
+        'full_name': user.full_name,
+        'email': user.email,
+        'avatar_url': user.avatar_url,
+        'profession': user.profession,
+        'experience_level': user.experience_level,
+    }
+
 @auth_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json(force=True)
@@ -38,7 +49,8 @@ def register():
         )
         session.add(user)
         session.commit()
-        return jsonify({'message': 'User registered successfully'}), 201
+        token = create_access_token(user.id)
+        return jsonify({'token': token, 'user': serialize_user(user)}), 201
     finally:
         session.close()
 
@@ -56,7 +68,7 @@ def login():
         user = session.query(User).filter_by(email=email).first()
         if user and check_password_hash(user.password_hash, password):
             token = create_access_token(user.id)
-            return jsonify({'token': token}), 200
+            return jsonify({'token': token, 'user': serialize_user(user)}), 200
         return jsonify({'error': 'Invalid credentials'}), 401
     finally:
         session.close()
@@ -151,22 +163,3 @@ def me(current_user):
         'profession': current_user.profession,
         'experience_level': current_user.experience_level,
     })
-
-
-@auth_bp.route('/profile', methods=['PUT'])
-@token_required
-def update_profile(current_user):
-    data = request.get_json(force=True)
-    session = get_session()
-    try:
-        if 'profession' in data:
-            current_user.profession = data['profession']
-        if 'experience_level' in data:
-            current_user.experience_level = data['experience_level']
-        if 'avatar_url' in data:
-            current_user.avatar_url = data['avatar_url']
-        session.merge(current_user)
-        session.commit()
-        return jsonify({'message': 'Profile updated'}), 200
-    finally:
-        session.close()

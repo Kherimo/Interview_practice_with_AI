@@ -37,6 +37,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://be-interview-practice-with-ai.onrender.com"
     }
   }
 }

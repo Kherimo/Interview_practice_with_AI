@@ -1,4 +1,4 @@
-import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import AppLayout from '@/components/custom/AppLayout'
 import { IconSymbol } from '@/components/ui/IconSymbol'
@@ -6,6 +6,7 @@ import Checkbox from 'expo-checkbox'
 import ButtonCustom from '@/components/custom/ButtonCustom'
 import {  useRouter } from 'expo-router'
 import { useTheme } from '@/context/ThemeContext'
+import { useAuth } from '@/context/AuthContext'
 
 const LoginScreen = () => {
    const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +14,14 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const router = useRouter();
   const {theme} = useTheme();
+  const { signIn } = useAuth();
+
+  const handleLogin = async () => {
+    const success = await signIn(email, password);
+    if (success) {
+      router.replace('/(tabs)/home');
+    }
+  }
 
    return (
     <AppLayout>
@@ -65,7 +74,7 @@ const LoginScreen = () => {
         </TouchableOpacity>
         <ButtonCustom
           title="Đăng nhập"
-          onPress={() => router.replace('/(tabs)/home')}
+          onPress={handleLogin}
           buttonStyle={{ backgroundColor: theme.colors.secondary, borderRadius: 12, marginBottom:10 }}
           textStyle={{ fontSize: 16, fontWeight: 'bold' }}
         />
@@ -120,9 +129,7 @@ const styles = StyleSheet.create({
     paddingRight: 40,
     borderRadius: 12,
     borderWidth: 0,
-    outline: "none",
     borderColor: "transparent",
-    cursor: "pointer",
     backgroundColor: "rgba(217,217,217,0.15)",
     color: "#fff",
   },
