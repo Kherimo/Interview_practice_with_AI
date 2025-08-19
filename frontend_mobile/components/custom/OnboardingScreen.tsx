@@ -22,19 +22,19 @@ const pages = [
     key: '1',
     title: 'Luyện tập với AI',
     subtitle: 'Cá nhân hóa câu hỏi phỏng vấn theo ngành nghề và mức độ kinh nghiệm.',
-    image: require('../../assets/images/Onboarding1.png'),
+    image: require('../../assets/images/onboarding1.png'),
   },
   {
     key: '2',
     title: 'Phản hồi tức thì',
     subtitle: 'Phân tích cụ thể và chấm điểm từng câu trả lời giúp bạn nâng cao kỹ năng phỏng vấn.',
-    image: require('../../assets/images/Onboarding2.png'),
+    image: require('../../assets/images/onboarding2.png'),
   },
   {
     key: '3',
     title: 'Theo dõi tiến trình của bạn',
     subtitle: "Quan sát sự cải thiện theo thời gian và thấy điểm số tăng lên sau mỗi buổi luyện tập.",
-    image: require('../../assets/images/Onboarding3.png'),
+    image: require('../../assets/images/onboarding3.png'),
   },
 ];
 

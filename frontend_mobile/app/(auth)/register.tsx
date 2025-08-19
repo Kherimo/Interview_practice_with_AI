@@ -5,6 +5,7 @@ import Checkbox from 'expo-checkbox';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import ButtonCustom from '@/components/custom/ButtonCustom';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 const RegisterScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +14,14 @@ const RegisterScreen = () => {
   const [password, setPassword] = useState('');
   const [isChecked, setChecked] = useState(false);
   const router = useRouter();
+  const { signUp } = useAuth();
+
+  const handleRegister = async () => {
+    const success = await signUp(email, password, fullName);
+    if (success) {
+      router.replace('/setUpProfile');
+    }
+  };
 
   return (
     <AppLayout>
@@ -87,7 +96,7 @@ const RegisterScreen = () => {
         {/* Button Đăng ký */}
         <ButtonCustom
           title="Đăng ký"
-          onPress={() => {router.replace('/setUpProfile')}}
+          onPress={handleRegister}
           buttonStyle={{ backgroundColor: '#4ADEDE', borderRadius: 12, marginBottom: 10 }}
           textStyle={{ fontSize: 16, fontWeight: 'bold' }}
         />

@@ -10,6 +10,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { login as loginRequest, register as registerRequest } from '../services/authService';
 
 // Định nghĩa kiểu dữ liệu cho người dùng
 type User = {
@@ -71,28 +72,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
-      // Thay thế đoạn code này bằng API call thực tế của bạn
-      // const response = await authService.login(email, password);
-      
-      // Đây là mock data để thử nghiệm
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Giả lập API delay
-      
-      const mockUser = {
-        id: 'user123',
-        username: 'bich-nhan',
-        email: email,
-        profilePicture: 'https://www.svgrepo.com/show/452030/avatar-default.svg'
+      const { token, user: userData } = await loginRequest(email, password);
+      const parsedUser: User = {
+        id: userData.id,
+        username: userData.full_name,
+        email: userData.email,
+        profilePicture: userData.avatar_url || undefined,
       };
-
-      const mockToken = 'sample-auth-token-123456';
-      
-      // Lưu thông tin user và token vào storage
-      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
-      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, mockToken);
-      
-      setUser(mockUser);
-      
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
+      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
+      setUser(parsedUser);
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -105,27 +94,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string, username: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
-      // Thay thế đoạn code này bằng API call thực tế của bạn
-      // const response = await authService.register(email, password, username);
-      
-      // Đây là mock data để thử nghiệm
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Giả lập API delay
-      
-      const mockUser = {
-        id: 'user' + Math.floor(Math.random() * 1000),
-        username: username,
-        email: email,
+      const { token, user: userData } = await registerRequest(username, email, password);
+      const parsedUser: User = {
+        id: userData.id,
+        username: userData.full_name,
+        email: userData.email,
+        profilePicture: userData.avatar_url || undefined,
       };
-
-      const mockToken = 'sample-auth-token-' + Math.random().toString(36).substring(7);
-      
-      // Lưu thông tin user và token vào storage
-      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mockUser));
-      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, mockToken);
-      
-      setUser(mockUser);
-      
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
+      await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
+      setUser(parsedUser);
       return true;
     } catch (error) {
       console.error('Registration error:', error);

@@ -11,6 +11,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import AppLayout from '@/components/custom/AppLayout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StartupFlow from '@/components/custom/StartupFlow';
+import { AuthProvider } from '@/context/AuthContext';
 
 // Layout wrapper with theme context integration
 function NavigationRoot() {
@@ -76,11 +77,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <ThemeProvider>
-        <AppLayout>
-          <StartupFlow>
-            <NavigationRoot />
-          </StartupFlow>
-        </AppLayout>
+        <AuthProvider>
+          <AppLayout>
+            <StartupFlow>
+              <NavigationRoot />
+            </StartupFlow>
+          </AppLayout>
+        </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

@@ -65,7 +65,7 @@ export default function VoiceInterviewScreen() {
     const stopWave = () => anims.forEach(a => a.stopAnimation());
 
     if (phase === 'recording') {
-      intervalRef.current = setInterval(() => setTimer(t => t + 1), 1000);
+      intervalRef.current = setInterval(() => setTimer(t => t + 1), 1000) as unknown as NodeJS.Timeout;
       startWave();
       // (Nếu dùng expo-av thì ở đây gọi Audio.Recording.createAsync... )
     } else {
@@ -157,7 +157,7 @@ export default function VoiceInterviewScreen() {
 
           {/* Avatar bên dưới trái */}
           <Image
-            source={require('@/assets/images/Robot.png')}
+            source={require('@/assets/images/robot.png')}
             style={styles.avatar}
             resizeMode="contain"
           />
