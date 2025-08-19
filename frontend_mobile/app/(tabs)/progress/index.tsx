@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     ScrollView,
     StatusBar,
@@ -12,6 +12,7 @@ import {
 import { useTheme } from '../../../context/ThemeContext';
  
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const mockScores = [
   { label: 'Dec 1', value: 4.8 },
@@ -23,6 +24,12 @@ const mockScores = [
   { label: 'Today', value: 7.6 },
 ];
 
+const filter = [
+    { label: '1 ngày', value: '1' },
+    { label: '7 ngày', value: '2' },
+    { label: '30 ngày', value: '3' },
+  ];
+
 const domains = [
   { name: 'Software Engineering', score: 8.7 },
   { name: 'Product Management', score: 7.2 },
@@ -30,6 +37,19 @@ const domains = [
 
 export default function ProgressScreen() {
   const { theme } = useTheme();
+  const [value, setValue] = useState(null);
+  const [isFocus, setIsFocus] = useState(false)
+
+  const renderLabel = () => {
+    if (value || isFocus) {
+      return (
+        <Text style={[styles.label, isFocus && { color: 'blue' }]}>
+          Dropdown label
+        </Text>
+      );
+    }
+    return null;
+  };
 
   const maxScore = 10;
   const stat = useMemo(
@@ -78,10 +98,30 @@ export default function ProgressScreen() {
         >
           <View style={styles.blockHeader}>
             <Text style={styles.blockTitle}>Xu hướng điểm số</Text>
-            <TouchableOpacity style={styles.rangeBtn}>
-              <Text style={styles.rangeBtnText}>30 ngày qua</Text>
-              <MaterialCommunityIcons name="chevron-down" size={18} color="#DFF9FF" />
-            </TouchableOpacity>
+            <Dropdown
+            style={[styles.dropdown, isFocus && { borderColor: '#4ADEDE' }]}
+            containerStyle={styles.dropdownContainer}
+            itemContainerStyle={styles.itemContainerStyle}
+            activeColor="rgba(74, 222, 222, 0.27)" // màu highlight trong suốt
+            itemTextStyle={{ color: '#FFFFFF' }}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            iconStyle={styles.iconStyle}
+            data={filter}
+            maxHeight={250}
+            labelField="label"
+            valueField="value"
+            placeholder="Chọn khoảng thời gian"
+            search={false} // bỏ search nếu không cần
+            value={value}
+            onFocus={() => setIsFocus(true)}
+            onBlur={() => setIsFocus(false)}
+            onChange={(item) => {
+              setValue(item.value);
+              setIsFocus(false);
+            }}
+          />
           </View>
 
           {/* trục & cột */}
@@ -174,6 +214,66 @@ const styles = StyleSheet.create({
   blockHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   blockTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', marginBottom: 8 },
 
+  dropdown: {
+    height: 40,
+    minWidth: 120,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  dropdownContainer: {
+    borderRadius: 8,
+    // paddingVertical: 6,
+    backgroundColor: '#141457dc', // nền tối đồng bộ app
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  itemContainerStyle: {
+    backgroundColor: 'transparent',
+    // paddingVertical: 5,
+    borderBottomWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  placeholderStyle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  selectedTextStyle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4ADEDE',
+  },
+  label: {
+      position: 'absolute',
+      backgroundColor: 'rgba(217, 217, 217, 0.15)',
+      left: 22,
+      top: 8,
+      zIndex: 999,
+      paddingHorizontal: 8,
+      fontSize: 14,
+    },
+  iconStyle: {
+    width: 20,
+    height: 20,
+    tintColor: '#FFFFFF',
+  },
+  inputSearchStyle: {
+    height: 38,
+    fontSize: 14,
+    color: '#FFFFFF',
+    borderBottomWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  fieldLabel: {
+    fontSize: 18,
+    fontWeight: 'medium',
+    marginBottom: 8,
+    color: '#FFFFFF',
+    
+  },
+
   rangeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -211,4 +311,5 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFg: { height: '100%', borderRadius: 999, backgroundColor: '#2CE59A' },
+
 });

@@ -154,7 +154,7 @@ export default function SavedScreen() {
             </View>
 
       {/* Filter chips */}
-      <ScrollView
+      {/* <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipsRow}
@@ -175,7 +175,7 @@ export default function SavedScreen() {
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </ScrollView> */}
 
       {/* List */}
       <FlatList

@@ -79,15 +79,16 @@ const RegisterScreen = () => {
           />
           <Text style={styles.checkboxText}>
             Tôi đồng ý với các
-            <Text style={styles.linkText}> Điều khoản</Text> và
-            <Text style={styles.linkText}> Chính sách bảo mật</Text>
           </Text>
+          <Text style={styles.linkText}> Điều khoản</Text>
+          <Text style={{ color: '#ffffff' }}> và</Text>
+          <Text style={styles.linkText}> Chính sách bảo mật</Text>
         </View>
 
         {/* Button Đăng ký */}
         <ButtonCustom
           title="Đăng ký"
-          onPress={() => {router.replace('/setUpProfile')}}
+          onPress={() => {router.replace('/login')}}
           buttonStyle={{ backgroundColor: '#4ADEDE', borderRadius: 12, marginBottom: 10 }}
           textStyle={{ fontSize: 16, fontWeight: 'bold' }}
         />

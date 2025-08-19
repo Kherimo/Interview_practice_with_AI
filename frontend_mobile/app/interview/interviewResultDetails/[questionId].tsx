@@ -137,10 +137,10 @@ export default function ResultAnswerDetailScreen() {
           <Text style={styles.scoreLabel}>Điểm trung bình</Text>
 
           <View style={styles.scoreBreakdown}>
-            <View style={styles.scoreBreakdownItem}>
+            {/* <View style={styles.scoreBreakdownItem}>
               <Text style={styles.breakdownScore}>{data.overallScore.speaking.toFixed(1)}</Text>
               <Text style={styles.breakdownLabel}>Kỹ năng nói</Text>
-            </View>
+            </View> */}
             <View style={styles.scoreBreakdownItem}>
               <Text style={styles.breakdownScore}>{data.overallScore.content.toFixed(1)}</Text>
               <Text style={styles.breakdownLabel}>Nội dung</Text>

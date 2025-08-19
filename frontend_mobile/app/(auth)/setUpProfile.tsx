@@ -4,6 +4,7 @@ import React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import BackgroundContainer from '../../components/common/BackgroundContainer';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 
 
@@ -17,7 +18,7 @@ const SetUpProfileScreen = () => {
         >
             {/* Header */}
             <View style={styles.header}>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
                 <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Thiết lập thông tin cá nhân</Text>

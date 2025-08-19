@@ -158,7 +158,7 @@ export default function HistoryDetailScreen() {
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => router.push('/Interview')}
+          onPress={() => router.push('/interview')}
           activeOpacity={0.9}
         >
           <Text style={styles.primaryBtnText}>Tiếp tục luyện tập</Text>

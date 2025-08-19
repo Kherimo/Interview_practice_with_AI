@@ -115,8 +115,8 @@ export default function HomeScreen() {
   );
 
   return (
-    <AppLayout>
-      <SafeAreaView style={{ flex: 1}}  edges={['top','bottom']}>
+    <BackgroundContainer>
+      
         <StatusBar barStyle="light-content" />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -187,7 +187,7 @@ export default function HomeScreen() {
           {/* Robot + stats */}
           <View style={styles.robotRow}>
             <Image
-              source={require('../../../assets/images/Robot.png')}
+              source={require('../../../assets/images/friendly_robot.png')}
               style={styles.robot}
               resizeMode="contain"
             />
@@ -238,8 +238,8 @@ export default function HomeScreen() {
 
           <View style={{ height: 80 }} />
         </ScrollView>
-      </SafeAreaView>
-    </AppLayout>
+     
+    </BackgroundContainer>
   );
 }
 

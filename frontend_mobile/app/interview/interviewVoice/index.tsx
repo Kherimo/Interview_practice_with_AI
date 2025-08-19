@@ -4,9 +4,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Animated,
   Image,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,6 +16,8 @@ import { useTheme } from '@/context/ThemeContext';
 import InfoPopup from '@/components/common/InfoPopup';
 import ConfirmPopup from '@/components/common/ConfirmPopup';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import AppLayout from '@/components/custom/AppLayout';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // (Tùy chọn tích hợp ghi âm thật): import { Audio } from 'expo-av';
 
@@ -36,10 +38,13 @@ export default function VoiceInterviewScreen() {
   const title = specialty || 'Software Engineering';
   const questionIndex = Number(qIndex || 5);
   const questionTotal = Number(qTotal || 8);
+  const { time } = useLocalSearchParams(); 
+  const interviewTime = Number(time) * 60; // chuyển phút -> giây
+  const [interviewCountdown, setInterviewCountdown] = useState(interviewTime);
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [timer, setTimer] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [transcript, setTranscript] = useState('');
   const [showEndPopup, setShowEndPopup] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
@@ -47,6 +52,45 @@ export default function VoiceInterviewScreen() {
   // Simple waveform animation (fake)
   const bars = new Array(16).fill(0);
   const anims = useRef(bars.map(() => new Animated.Value(4))).current;
+
+// format mm:ss
+  const mmssinterview = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setTimer(t => {
+        if (t <= 1) {
+          clearInterval(intervalRef.current!);
+          // TODO: kết thúc phỏng vấn ở đây
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+  useEffect(() => {
+  if (interviewCountdown <= 0) return;
+
+  const interval = setInterval(() => {
+    setInterviewCountdown(prev => {
+      if (prev <= 1) {
+        clearInterval(interval);
+        setShowEndPopup(true); // hết giờ => popup kết thúc
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, []);
 
   // timer
   useEffect(() => {
@@ -91,8 +135,8 @@ export default function VoiceInterviewScreen() {
   };
 
   return (
-    <BackgroundContainer withOverlay={false}>
-      <SafeAreaView />
+    <AppLayout>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.hbtn} onPress={() => setShowCancelPopup(true)}>
@@ -109,113 +153,108 @@ export default function VoiceInterviewScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* AI interviewer icon */}
-      <View style={styles.aiIconWrap}>
-        {/* <View style={styles.aiIconCircle}> */}
-          {/* <MaterialCommunityIcons name="robot-happy-outline" size={26} color="#00141A" /> */}
-          {/* <Image 
-            source={require('../../../assets/images/Robot.png')} 
-            style={styles.avatarImage} 
-            resizeMode="cover" 
-          /> */}
-        {/* </View> */}
-        {/* <Text style={styles.aiLabel}></Text> */}
-      </View>
+      {/* Time interview */}
 
-      {/* Question bubble */}
-      <View
-        
-        style={[styles.bubble]}
-      >
+      <View style={{alignItems:'flex-end', backgroundColor: "transparent", marginRight:10, marginVertical:15}}>
+        <Text style={{ color: "#fff", padding:10, borderRadius: 8, backgroundColor: "rgba(255, 255, 255, 0.1)", fontWeight: "bold", fontSize: 20 }}>
+          {mmssinterview(interviewCountdown)}
+        </Text>
+      </View>
+      <ScrollView contentContainerStyle={{ flexGrow: 1}} showsVerticalScrollIndicator={false}>
+        {/* Question bubble */}
         <View
-            style={styles.aIQuestion}>
-          <View style={styles.questionWrapper}>
-            <View style={styles.questionBox}>
+          
+          style={[styles.bubble]}
+        >
+          <View
+              style={styles.aIQuestion}>
+            <View style={styles.questionWrapper}>
+              <View style={styles.questionBox}>
+                <View style={styles.bubbleHeader}>
+                  <Text style={styles.bubbleTag}>Behavioral Question</Text>
+                  <View style={styles.bubbleActions}>
+                    <TouchableOpacity style={styles.iconRound}>
+                      <MaterialCommunityIcons name="volume-high" size={16} color="#00141A" />
+                    </TouchableOpacity>
+                    {/* <TouchableOpacity><Text style={styles.replayText}>Replay</Text></TouchableOpacity> */}
+                  </View>
+                </View>
+
+                <Text style={styles.bubbleText}>{QUESTION}</Text>
+
+                <View style={{ height: 10 }} />
+                <View style={styles.tinyWave}>
+                  {bars.map((_, i) => (
+                    <View key={i} style={styles.tinyBar} />
+                  ))}
+                </View>
+              </View>
+
+              {/* Bubble tail */}
+              <View style={styles.bubbleTail} />
+            </View>
+
+            {/* Avatar bên dưới trái */}
+            <Image
+              source={require('@/assets/images/friendly_robot.png')}
+              style={styles.avatar}
+              resizeMode="contain"
+            />
+          </View>
+
+        </View>
+
+        {/* Middle area: Mic / Recording / Answered */}
+        <View style={{ alignItems: 'center', marginTop: 18 }}>
+          {phase === 'idle' && (
+            <>
+              <TouchableOpacity style={styles.micBtn} onPress={onTapMic} activeOpacity={0.9}>
+                <MaterialCommunityIcons name="microphone" size={32} color="#00141A" />
+              </TouchableOpacity>
+              <Text style={styles.micLabel}>Nhấn để Trả lời</Text>
+              <Text style={styles.hint}>Hãy suy nghĩ câu trả lời của bạn trước tiên</Text>
+            </>
+          )}
+
+          {phase === 'recording' && (
+            <>
+              <TouchableOpacity style={[styles.stopBtn]} onPress={onStop} activeOpacity={0.9}>
+                <MaterialCommunityIcons name="stop" size={28} color="#00141A" />
+              </TouchableOpacity>
+              <Text style={styles.recording}>Đang ghi âm...</Text>
+              <Text style={styles.timer}>{mmss}</Text>
+
+              {/* big waveform */}
+              <View style={styles.waveWrap}>
+                {anims.map((a, i) => (
+                  <Animated.View key={i} style={[styles.waveBar, { height: a }]} />
+                ))}
+              </View>
+              <Text style={styles.tapStop}>Nhấn để dừng ghi âm</Text>
+            </>
+          )}
+
+          {phase === 'answered' && (
+            <LinearGradient
+              colors={['rgba(86,0,255,0.35)', 'rgba(0,201,255,0.2)']}
+              start={{ x: 0.05, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.answerCard, styles.cardBorder]}
+            >
               <View style={styles.bubbleHeader}>
-                <Text style={styles.bubbleTag}>Behavioral Question</Text>
+                <Text style={[styles.bubbleTag, { color: '#7CF3FF' }]}>Câu trả lời của bạn</Text>
                 <View style={styles.bubbleActions}>
                   <TouchableOpacity style={styles.iconRound}>
                     <MaterialCommunityIcons name="volume-high" size={16} color="#00141A" />
                   </TouchableOpacity>
-                  {/* <TouchableOpacity><Text style={styles.replayText}>Replay</Text></TouchableOpacity> */}
+                  {/* <TouchableOpacity><Text style={styles.replayText}>Phát lại</Text></TouchableOpacity> */}
                 </View>
               </View>
-
-              <Text style={styles.bubbleText}>{QUESTION}</Text>
-
-              <View style={{ height: 10 }} />
-              <View style={styles.tinyWave}>
-                {bars.map((_, i) => (
-                  <View key={i} style={styles.tinyBar} />
-                ))}
-              </View>
-            </View>
-
-            {/* Bubble tail */}
-            <View style={styles.bubbleTail} />
-          </View>
-
-          {/* Avatar bên dưới trái */}
-          <Image
-            source={require('@/assets/images/Robot.png')}
-            style={styles.avatar}
-            resizeMode="contain"
-          />
+              <Text style={styles.answerText}>{transcript}</Text>
+            </LinearGradient>
+          )}
         </View>
-
-      </View>
-
-      {/* Middle area: Mic / Recording / Answered */}
-      <View style={{ alignItems: 'center', marginTop: 18 }}>
-        {phase === 'idle' && (
-          <>
-            <TouchableOpacity style={styles.micBtn} onPress={onTapMic} activeOpacity={0.9}>
-              <MaterialCommunityIcons name="microphone" size={32} color="#00141A" />
-            </TouchableOpacity>
-            <Text style={styles.micLabel}>Nhấn để Trả lời</Text>
-            <Text style={styles.hint}>Hãy suy nghĩ câu trả lời của bạn trước tiên</Text>
-          </>
-        )}
-
-        {phase === 'recording' && (
-          <>
-            <TouchableOpacity style={[styles.stopBtn]} onPress={onStop} activeOpacity={0.9}>
-              <MaterialCommunityIcons name="stop" size={28} color="#00141A" />
-            </TouchableOpacity>
-            <Text style={styles.recording}>Đang ghi âm...</Text>
-            <Text style={styles.timer}>{mmss}</Text>
-
-            {/* big waveform */}
-            <View style={styles.waveWrap}>
-              {anims.map((a, i) => (
-                <Animated.View key={i} style={[styles.waveBar, { height: a }]} />
-              ))}
-            </View>
-            <Text style={styles.tapStop}>Nhấn để dừng ghi âm</Text>
-          </>
-        )}
-
-        {phase === 'answered' && (
-          <LinearGradient
-            colors={['rgba(86,0,255,0.35)', 'rgba(0,201,255,0.2)']}
-            start={{ x: 0.05, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.answerCard, styles.cardBorder]}
-          >
-            <View style={styles.bubbleHeader}>
-              <Text style={[styles.bubbleTag, { color: '#7CF3FF' }]}>Câu trả lời của bạn</Text>
-              <View style={styles.bubbleActions}>
-                <TouchableOpacity style={styles.iconRound}>
-                  <MaterialCommunityIcons name="volume-high" size={16} color="#00141A" />
-                </TouchableOpacity>
-                {/* <TouchableOpacity><Text style={styles.replayText}>Phát lại</Text></TouchableOpacity> */}
-              </View>
-            </View>
-            <Text style={styles.answerText}>{transcript}</Text>
-          </LinearGradient>
-        )}
-      </View>
-
+      </ScrollView>
       {/* Bottom controls */}
       <View style={styles.bottomRow}>
         <TouchableOpacity style={styles.bottomBtn}>
@@ -228,35 +267,35 @@ export default function VoiceInterviewScreen() {
           <Text style={styles.bottomTxt}>Tạm dừng</Text>
         </TouchableOpacity>
       </View>
+        {/* Popup thông báo hết thời gian phỏng vấn */}
+        <InfoPopup
+          visible={showEndPopup}
+          title="Hoàn thành phỏng vấn"
+          message="Bạn đã hoàn thành phiên phỏng vấn. Bây giờ bạn có thể xem kết quả phân tích và nhận phản hồi chi tiết."
+          buttonText="Xem kết quả"
+          onClose={() => {
+            setShowEndPopup(false);
+            router.push('/interview/interviewResult');
+          }}
+          type="success"
+        />
 
-      {/* Popup thông báo hết thời gian phỏng vấn */}
-      <InfoPopup
-        visible={showEndPopup}
-        title="Hoàn thành phỏng vấn"
-        message="Bạn đã hoàn thành phiên phỏng vấn. Bây giờ bạn có thể xem kết quả phân tích và nhận phản hồi chi tiết."
-        buttonText="Xem kết quả"
-        onClose={() => {
-          setShowEndPopup(false);
-          router.push('/interview/interviewResult');
-        }}
-        type="success"
-      />
-
-      {/* Popup xác nhận hủy phỏng vấn */}
-      <ConfirmPopup
-        visible={showCancelPopup}
-        title="Hủy phỏng vấn"
-        message="Bạn có chắc muốn hủy phiên phỏng vấn này? Dữ liệu phỏng vấn hiện tại sẽ không được lưu."
-        confirmText="Hủy phỏng vấn"
-        cancelText="Tiếp tục"
-        onConfirm={() => {
-          setShowCancelPopup(false);
-          router.back();
-        }}
-        onCancel={() => setShowCancelPopup(false)}
-        isDestructive={true}
-      />
-    </BackgroundContainer>
+        {/* Popup xác nhận hủy phỏng vấn */}
+        <ConfirmPopup
+          visible={showCancelPopup}
+          title="Hủy phỏng vấn"
+          message="Bạn có chắc muốn hủy phiên phỏng vấn này? Dữ liệu phỏng vấn hiện tại sẽ không được lưu."
+          confirmText="Hủy phỏng vấn"
+          cancelText="Tiếp tục"
+          onConfirm={() => {
+            setShowCancelPopup(false);
+            router.back();
+          }}
+          onCancel={() => setShowCancelPopup(false)}
+          isDestructive={true}
+        />
+        </SafeAreaView>
+    </AppLayout>
   );
 }
 
@@ -274,23 +313,12 @@ const styles = StyleSheet.create({
   hbtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 16, fontWeight: '800' },
   subtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
-
-  aiIconWrap: { alignItems: 'center', marginTop: 12, marginBottom: 6 },
-  aiIconCircle: {
-    width: 52, height: 52, borderRadius: 26, backgroundColor: 'transparent',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarImage: {
-    width: 52, height: 52, borderRadius: 26,
-  },
-  aiLabel: { color: '#DFF9FF', marginTop: 6 },
-
-  bubble: { marginHorizontal: 16, borderRadius: 16, padding: 14, marginTop: 4 },
+  bubble: { marginHorizontal: 16, borderRadius: 16, padding: 14},
   cardBorder: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
-  aIQuestion: { flexDirection:"column", alignItems:"flex-start", marginTop:20, marginBottom:20 },
-questionWrapper: { alignSelf:"flex-end", maxWidth:"85%", position:"relative" },
-questionBox: { padding:16, backgroundColor:"rgba(255,255,255,0.15)", borderTopLeftRadius:16, borderTopRightRadius:16, borderBottomRightRadius:16 },
-bubbleTail: {
+  aIQuestion: { flexDirection:"column", alignItems:"flex-start", marginBottom:15 },
+  questionWrapper: { alignSelf:"flex-end", maxWidth:"85%", position:"relative" },
+  questionBox: { padding:16, backgroundColor:"rgba(255,255,255,0.15)", borderTopLeftRadius:16, borderTopRightRadius:16, borderBottomRightRadius:16 },
+  bubbleTail: {
   position:"absolute",
   left:0,
   bottom:-15,

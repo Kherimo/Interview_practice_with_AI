@@ -2,19 +2,35 @@ import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'rea
 import React, { useState } from 'react'
 import AppLayout from '@/components/custom/AppLayout'
 import { IconSymbol } from '@/components/ui/IconSymbol'
-import Checkbox from 'expo-checkbox'
 import ButtonCustom from '@/components/custom/ButtonCustom'
-import {  useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { useTheme } from '@/context/ThemeContext'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const LoginScreen = () => {
-   const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
-   return (
+  const handleLogin = async () => {
+    // ở đây bạn có thể thêm validate email, password + call API login
+
+    // kiểm tra xem đã lưu flag isFirstLogin chưa
+    const firstLogin = await AsyncStorage.getItem("isFirstLogin");
+
+    if (!firstLogin) {
+      // lần đầu -> set flag để lần sau không vào nữa
+      await AsyncStorage.setItem("isFirstLogin", "false");
+      router.replace("/setUpProfile");
+    } else {
+      // không phải lần đầu
+      router.replace("/(tabs)/home");
+    }
+  };
+
+  return (
     <AppLayout>
       <View style={styles.container}>
         {/* Header */}
@@ -44,7 +60,6 @@ const LoginScreen = () => {
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
-            
             />
             <TouchableOpacity
               style={styles.eyeIcon}
@@ -60,20 +75,30 @@ const LoginScreen = () => {
         </View>
 
         {/* Quên mật khẩu */}
-        <TouchableOpacity onPress={()=>{router.push('/(auth)/forgot-password')}}  style={{ marginBottom: 20, width: 200, maxWidth: '100%' }}>
+        <TouchableOpacity
+          onPress={() => {
+            router.push("/(auth)/forgot-password");
+          }}
+          style={{ marginBottom: 20, width: 200, maxWidth: "100%" }}
+        >
           <Text style={styles.forgot}>Quên mật khẩu?</Text>
         </TouchableOpacity>
+
         <ButtonCustom
           title="Đăng nhập"
-          onPress={() => router.replace('/(tabs)/home')}
-          buttonStyle={{ backgroundColor: theme.colors.secondary, borderRadius: 12, marginBottom:10 }}
-          textStyle={{ fontSize: 16, fontWeight: 'bold' }}
+          onPress={handleLogin}
+          buttonStyle={{
+            backgroundColor: theme.colors.secondary,
+            borderRadius: 12,
+            marginBottom: 10,
+          }}
+          textStyle={{ fontSize: 16, fontWeight: "bold" }}
         />
 
         {/* Chuyển sang Đăng ký */}
         <View style={styles.bottomText}>
           <Text style={{ color: "#C2C2C2" }}>Bạn chưa có tài khoản? </Text>
-          <TouchableOpacity onPress={() => router.replace('/(auth)/register')}>
+          <TouchableOpacity onPress={() => router.replace("/(auth)/register")}>
             <Text style={{ color: theme.colors.secondary, fontWeight: "600" }}>
               Đăng ký
             </Text>
@@ -81,10 +106,10 @@ const LoginScreen = () => {
         </View>
       </View>
     </AppLayout>
-   )
-}
+  );
+};
 
-export default LoginScreen
+export default LoginScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -120,9 +145,6 @@ const styles = StyleSheet.create({
     paddingRight: 40,
     borderRadius: 12,
     borderWidth: 0,
-    outline: "none",
-    borderColor: "transparent",
-    cursor: "pointer",
     backgroundColor: "rgba(217,217,217,0.15)",
     color: "#fff",
   },
@@ -136,20 +158,8 @@ const styles = StyleSheet.create({
     color: "#C2C2C2",
     fontSize: 14,
   },
-  loginButton: {
-    backgroundColor: '#4ADEDE',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  loginButtonText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
   bottomText: {
     flexDirection: "row",
     justifyContent: "center",
   },
-})
+});

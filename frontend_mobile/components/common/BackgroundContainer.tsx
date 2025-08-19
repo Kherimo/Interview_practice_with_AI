@@ -10,6 +10,7 @@
 import React from 'react';
 import { ImageBackground, StyleSheet, Dimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ChatFloating from '../chatFloating';
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,6 +32,7 @@ const BackgroundContainer: React.FC<BackgroundContainerProps> = ({
       {withOverlay && <View style={styles.overlay} />}
       <SafeAreaView style={styles.container}>
         {children}
+        <ChatFloating/>
       </SafeAreaView>
     </ImageBackground>
   );
