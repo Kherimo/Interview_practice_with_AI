@@ -6,6 +6,7 @@ import ButtonCustom from '@/components/custom/ButtonCustom'
 import { useRouter } from 'expo-router'
 import { useTheme } from '@/context/ThemeContext'
 import { useAuth } from '@/context/AuthContext'
+import InfoPopup from '@/components/common/InfoPopup'
 
 const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,16 +15,52 @@ const LoginScreen = () => {
   const router = useRouter();
   const {theme} = useTheme();
   const { signIn } = useAuth();
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningTitle, setWarningTitle] = useState('');
+  const [warningMessage, setWarningMessage] = useState('');
+  const [popupType, setPopupType] = useState<'info' | 'success' | 'warning' | 'error'>('warning');
+
+  const showWarningPopup = (title: string, message: string) => {
+    setWarningTitle(title);
+    setWarningMessage(message);
+    setShowWarning(true);
+    setPopupType('warning');
+  };
 
   const handleLogin = async () => {
-    const success = await signIn(email, password);
-    if (success) {
-      router.replace('/(tabs)/home');
+    if (!email || !password) {
+      showWarningPopup('Lỗi', 'Vui lòng nhập email và mật khẩu');
+      return;
+    }
+    if (!email.includes('@')) {
+      showWarningPopup('Lỗi', 'Vui lòng nhập địa chỉ email hợp lệ');
+      return;
+    }
+    const result = await signIn(email, password);
+    if (result.ok) {
+      // Nếu chưa có nghề nghiệp/kinh nghiệm thì yêu cầu thiết lập
+      if (!result.user.profession || !result.user.experienceLevel) {
+        router.replace('/setUpProfile');
+      } else {
+        router.replace('/(tabs)/home');
+      }
+    } else {
+      setWarningTitle('Lỗi');
+      setWarningMessage(result.error || 'Email hoặc mật khẩu không đúng');
+      setPopupType('error');
+      setShowWarning(true);
     }
   }
 
   return (
     <AppLayout>
+      <InfoPopup
+        visible={showWarning}
+        title={warningTitle}
+        message={warningMessage}
+        onClose={() => setShowWarning(false)}
+        type={popupType}
+      />
       <View style={styles.container}>
         {/* Header */}
         <Text style={styles.title}>Đăng nhập</Text>

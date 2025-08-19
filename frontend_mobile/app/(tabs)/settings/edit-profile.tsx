@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import InfoPopup from '../../../components/common/InfoPopup';
+import { getCurrentUser, updateProfile } from '@/services/authService';
 import { IconWrapper } from '../../../components/common/IconWrapper';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
@@ -20,18 +21,52 @@ export default function EditProfileScreen() {
   const router = useRouter();
   
   // State for form fields
-  const [name, setName] = useState('Sarah Johnson');
-  const [email, setEmail] = useState('sarah.johnson@email.com');
-  // const [occupation, setOccupation] = useState('Software Engineer');
-  // const [experience, setExperience] = useState('Mid-Level (3-5 years)');
-  const [occupation] = useState('Software Engineer');
-  const [experience] = useState('Mid-Level (3-5 years)');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [occupation, setOccupation] = useState<string | undefined>(undefined);
+  const [experience, setExperience] = useState<string | undefined>(undefined);
   const [showInfo, setShowInfo] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningTitle, setWarningTitle] = useState('');
+  const [warningMessage, setWarningMessage] = useState('');
+
+  const showWarningPopup = (title: string, message: string) => {
+    setWarningTitle(title);
+    setWarningMessage(message);
+    setShowWarning(true);
+  };
   
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const me = await getCurrentUser();
+        setName(me.name || '');
+        setEmail(me.email || '');
+        setOccupation(me.profession || undefined);
+        setExperience(me.experience_level || undefined);
+      } catch (e) {
+        // ignore
+      }
+    };
+    load();
+  }, []);
+
   // Save changes and go back to profile
-  const handleSaveChanges = () => {
-    // Here you would typically update the user profile data
-    setShowInfo(true);
+  const handleSaveChanges = async () => {
+    if (!name || !email) {
+      showWarningPopup('Lỗi', 'Vui lòng nhập đầy đủ họ tên và email');
+      return;
+    }
+    if (!email.includes('@')) {
+      showWarningPopup('Lỗi', 'Vui lòng nhập địa chỉ email hợp lệ');
+      return;
+    }
+    try {
+      await updateProfile({ name, email, profession: occupation, experience_level: experience });
+      setShowInfo(true);
+    } catch (e: any) {
+      showWarningPopup('Lỗi', e?.message || 'Cập nhật hồ sơ thất bại');
+    }
   };
 
   return (
@@ -48,6 +83,13 @@ export default function EditProfileScreen() {
           router.back();
         }}
         type="success"
+      />
+      <InfoPopup
+        visible={showWarning}
+        title={warningTitle}
+        message={warningMessage}
+        onClose={() => setShowWarning(false)}
+        type="warning"
       />
       
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{flexGrow: 1}}>
@@ -103,7 +145,7 @@ export default function EditProfileScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Nghề nghiệp</Text>
             <TouchableOpacity style={styles.selectInput}>
-              <Text style={styles.selectText}>{occupation}</Text>
+              <Text style={styles.selectText}>{occupation || 'Chưa cập nhật'}</Text>
               <Ionicons name="chevron-down" size={20} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           </View>
@@ -111,7 +153,7 @@ export default function EditProfileScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Kinh nghiệm</Text>
             <TouchableOpacity style={styles.selectInput}>
-              <Text style={styles.selectText}>{experience}</Text>
+              <Text style={styles.selectText}>{experience || 'Chưa cập nhật'}</Text>
               <Ionicons name="chevron-down" size={20} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           </View>

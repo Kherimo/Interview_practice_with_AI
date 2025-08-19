@@ -18,26 +18,30 @@ type User = {
   username: string;
   email: string;
   profilePicture?: string;  // Ảnh đại diện (tùy chọn)
+  profession?: string | null;
+  experienceLevel?: string | null;
 };
 
 // Định nghĩa kiểu dữ liệu cho AuthContext
 type AuthContextType = {
   user: User | null;         // Thông tin người dùng hiện tại hoặc null nếu chưa đăng nhập
   isLoading: boolean;        // Trạng thái đang tải (kiểm tra session, API calls...)
-  signIn: (email: string, password: string) => Promise<boolean>;  // Hàm đăng nhập
-  signUp: (email: string, password: string, username: string) => Promise<boolean>;  // Hàm đăng ký
+  signIn: (email: string, password: string) => Promise<{ ok: true, user: User } | { ok: false, error: string }>;  // Hàm đăng nhập
+  signUp: (email: string, password: string, username: string) => Promise<{ ok: true, user: User } | { ok: false, error: string }>;  // Hàm đăng ký
   signOut: () => Promise<void>;  // Hàm đăng xuất
   isAuthenticated: boolean;  // Trạng thái đã xác thực hay chưa
+  updateUser: (partial: Partial<User>) => Promise<void>;
 };
 
 // Tạo context với các giá trị mặc định
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
-  signIn: async () => false,
-  signUp: async () => false,
+  signIn: async () => ({ ok: false, error: 'Not implemented' }),
+  signUp: async () => ({ ok: false, error: 'Not implemented' }),
   signOut: async () => {},
   isAuthenticated: false,
+  updateUser: async () => {},
 });
 
 // Storage keys
@@ -69,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loadUserFromStorage();
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (email: string, password: string): Promise<{ ok: true, user: User } | { ok: false, error: string }> => {
     try {
       setIsLoading(true);
       const { token, user: userData } = await loginRequest(email, password);
@@ -78,20 +82,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         username: userData.full_name,
         email: userData.email,
         profilePicture: userData.avatar_url || undefined,
+        profession: userData.profession ?? null,
+        experienceLevel: userData.experience_level ?? null,
       };
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
       setUser(parsedUser);
-      return true;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      return { ok: true, user: parsedUser };
+    } catch (error: any) {
+      return { ok: false, error: error?.message || 'Đăng nhập thất bại' };
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, username: string): Promise<boolean> => {
+  const signUp = async (email: string, password: string, username: string): Promise<{ ok: true, user: User } | { ok: false, error: string }> => {
     try {
       setIsLoading(true);
       const { token, user: userData } = await registerRequest(username, email, password);
@@ -100,14 +105,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         username: userData.full_name,
         email: userData.email,
         profilePicture: userData.avatar_url || undefined,
+        profession: userData.profession ?? null,
+        experienceLevel: userData.experience_level ?? null,
       };
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
       setUser(parsedUser);
-      return true;
-    } catch (error) {
-      console.error('Registration error:', error);
-      return false;
+      return { ok: true, user: parsedUser };
+    } catch (error: any) {
+      return { ok: false, error: error?.message || 'Đăng ký thất bại' };
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       
       // Điều hướng về màn hình đăng nhập 
-      router.replace('./auth/index');
+      router.replace('/(auth)');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -140,6 +146,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp,
     signOut,
     isAuthenticated: !!user,
+    updateUser: async (partial: Partial<User>) => {
+      setUser((prev) => {
+        const merged = { ...(prev || {} as User), ...partial } as User;
+        AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(merged));
+        return merged;
+      });
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

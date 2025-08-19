@@ -81,7 +81,7 @@ export default function ForgotPasswordScreen() {
         message="Mã xác thực đã được gửi đến email của bạn!"
         onClose={() => {
           setShowSuccess(false);
-          router.replace('/login');
+          router.replace('/(auth)/login');
         }}
         type="success"
       />
@@ -146,7 +146,7 @@ export default function ForgotPasswordScreen() {
                 {/* Remember Password */}
                 <TouchableOpacity 
                   style={styles.rememberPasswordContainer}
-                  onPress={() => router.push('/login')}
+                  onPress={() => router.push('/(auth)/login')}
                 >
                   <Text style={styles.rememberPasswordText}>Nhớ mật khẩu? <Text style={styles.loginText}>Đăng nhập</Text></Text>
                 </TouchableOpacity>
