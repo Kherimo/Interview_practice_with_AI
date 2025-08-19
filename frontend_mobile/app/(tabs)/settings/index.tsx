@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -10,12 +10,14 @@ import {
   StatusBar
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../../context/AuthContext';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import ConfirmPopup from '../../../components/common/ConfirmPopup';
 import InfoPopup from '../../../components/common/InfoPopup';
 import { IconWrapper } from '../../../components/common/IconWrapper';
+import { getCurrentUser } from '@/services/authService';
+import { useAuth } from '@/context/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 export default function SettingsScreen() {
@@ -26,6 +28,8 @@ export default function SettingsScreen() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profile, setProfile] = useState<{ name: string; email: string; avatar_url?: string | null; profession?: string | null; experience_level?: string | null } | null>(null);
   
   /**
    * Xử lý quá trình đăng xuất:
@@ -63,6 +67,34 @@ export default function SettingsScreen() {
   const handleEditProfile = () => {
     router.push('/settings/edit-profile');
   };
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoadingProfile(true);
+      const me = await getCurrentUser();
+      setProfile({
+        name: me.name,
+        email: me.email,
+        avatar_url: me.avatar_url,
+        profession: me.profession,
+        experience_level: me.experience_level,
+      });
+    } catch (e) {
+      console.error('Load profile failed:', e);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile])
+  );
 
   return (
     <BackgroundContainer withOverlay={false}>
@@ -122,23 +154,23 @@ export default function SettingsScreen() {
           </View>
           
           <Text style={styles.profileName}>
-            Sarah Johnson
+            {loadingProfile ? 'Đang tải...' : (profile?.name || 'Chưa cập nhật')}
           </Text>
           
           <Text style={styles.profileEmail}>
-            Sarah.Johnson@gmail.com
+            {loadingProfile ? '' : (profile?.email || '')}
           </Text>
           
           <View style={styles.profileInfoRow}>
             <View style={styles.profileInfoItem}>
               <Text style={styles.profileInfoLabel}>Nghề nghiệp</Text>
-              <Text style={styles.profileInfoValue}>Software Engineer</Text>
+              <Text style={styles.profileInfoValue}>{loadingProfile ? '...' : (profile?.profession || 'Chưa cập nhật')}</Text>
             </View>
             
             <View style={styles.profileInfoItem}>
               <Text style={styles.profileInfoLabel}>Kinh nghiệm</Text>
               <View style={styles.levelBadge}>
-                <Text style={styles.levelText}>Mid-Level</Text>
+                <Text style={styles.levelText}>{loadingProfile ? '...' : (profile?.experience_level || 'Chưa cập nhật')}</Text>
               </View>
             </View>
           </View>

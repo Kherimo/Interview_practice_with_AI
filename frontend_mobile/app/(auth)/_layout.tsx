@@ -1,9 +1,17 @@
-import React from 'react';
-import { Stack } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Stack, router } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AuthLayout() {
   const { theme } = useTheme();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace('/(tabs)/home');
+    }
+  }, [isLoading, user]);
 
   return (
     <Stack

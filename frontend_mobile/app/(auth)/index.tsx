@@ -11,15 +11,15 @@ export default function AuthIndex() {
         const hasLaunched = await AsyncStorage.getItem('hasLaunched');
         if (hasLaunched) {
           // Đã từng mở app → đi thẳng login
-          router.replace('/login');
+          router.replace('/(auth)/login');
         } else {
           // Lần đầu mở app → đánh dấu đã mở → vào register
           await AsyncStorage.setItem('hasLaunched', 'true');
-          router.replace('/register');
+          router.replace('/(auth)/register');
         }
       } catch (err) {
         console.error(err);
-        router.replace('/login'); // fallback
+        router.replace('/(auth)/login'); // fallback
       }
     };
 

@@ -6,6 +6,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import ButtonCustom from '@/components/custom/ButtonCustom';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import InfoPopup from '@/components/common/InfoPopup';
 
 const RegisterScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,16 +16,56 @@ const RegisterScreen = () => {
   const [isChecked, setChecked] = useState(false);
   const router = useRouter();
   const { signUp } = useAuth();
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningTitle, setWarningTitle] = useState('');
+  const [warningMessage, setWarningMessage] = useState('');
+  const [popupType, setPopupType] = useState<'info' | 'success' | 'warning' | 'error'>('warning');
+
+  const showWarningPopup = (title: string, message: string) => {
+    setWarningTitle(title);
+    setWarningMessage(message);
+    setShowWarning(true);
+    setPopupType('warning');
+  };
 
   const handleRegister = async () => {
-    const success = await signUp(email, password, fullName);
-    if (success) {
+    if (!fullName || !email || !password) {
+      showWarningPopup('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    if (!email.includes('@')) {
+      showWarningPopup('Lỗi', 'Vui lòng nhập địa chỉ email hợp lệ');
+      return;
+    }
+    if (password.length < 6) {
+      showWarningPopup('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+    if (!isChecked) {
+      showWarningPopup('Lỗi', 'Vui lòng đồng ý với Điều khoản và Chính sách bảo mật');
+      return;
+    }
+    const result = await signUp(email, password, fullName);
+    if (result.ok) {
+      // Điều hướng tới thiết lập thông tin cá nhân để cập nhật nghề nghiệp/kinh nghiệm
       router.replace('/setUpProfile');
+    } else {
+      setWarningTitle('Lỗi');
+      setWarningMessage(result.error || 'Đăng ký thất bại. Vui lòng thử lại.');
+      setPopupType('error');
+      setShowWarning(true);
     }
   };
 
   return (
     <AppLayout>
+      <InfoPopup
+        visible={showWarning}
+        title={warningTitle}
+        message={warningMessage}
+        onClose={() => setShowWarning(false)}
+        type={popupType}
+      />
       <View style={styles.container}>
         {/* Header */}
         <Text style={styles.title}>Đăng ký</Text>

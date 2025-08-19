@@ -1,17 +1,55 @@
 // SplashScreen.tsx
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import React from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import BackgroundContainer from '../../components/common/BackgroundContainer';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { updateProfile } from '@/services/authService';
+import { useAuth } from '@/context/AuthContext';
+import InfoPopup from '@/components/common/InfoPopup';
 import AppLayout from '@/components/custom/AppLayout';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 
 const SetUpProfileScreen = () => {
-  
+  const [profession, setProfession] = useState('');
+  const [experienceLevel, setExperienceLevel] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const { updateUser } = useAuth();
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningTitle, setWarningTitle] = useState('');
+  const [warningMessage, setWarningMessage] = useState('');
+  const [popupType, setPopupType] = useState<'info' | 'success' | 'warning' | 'error'>('warning');
+
+  const showWarningPopup = (title: string, message: string) => {
+    setWarningTitle(title);
+    setWarningMessage(message);
+    setShowWarning(true);
+    setPopupType('warning');
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+      if (!profession || !experienceLevel) {
+        showWarningPopup('Lỗi', 'Vui lòng nhập đầy đủ nghề nghiệp và kinh nghiệm');
+        return;
+      }
+      await updateProfile({ profession, experience_level: experienceLevel });
+      await updateUser({ profession, experienceLevel });
+      router.replace('/(tabs)/home');
+    } catch (e) {
+      setWarningTitle('Lỗi');
+      setWarningMessage((e as any)?.message || 'Cập nhật hồ sơ thất bại');
+      setPopupType('error');
+      setShowWarning(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
       <AppLayout>
         <SafeAreaView style={{ flex: 1 }}>
@@ -19,6 +57,13 @@ const SetUpProfileScreen = () => {
               
               style={styles.background}
           >
+              <InfoPopup
+                visible={showWarning}
+                title={warningTitle}
+                message={warningMessage}
+                onClose={() => setShowWarning(false)}
+                type={popupType}
+              />
               {/* Header */}
               <View style={styles.header}>
               <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
@@ -52,6 +97,8 @@ const SetUpProfileScreen = () => {
                     placeholder="Software Engineering"
                     placeholderTextColor="#ccc"
                     style={styles.input}
+                    value={profession}
+                    onChangeText={setProfession}
                 />
               </View>
               <View style={styles.inputContainer}>
@@ -60,12 +107,18 @@ const SetUpProfileScreen = () => {
                     placeholder="Junior"
                     placeholderTextColor="#ccc"
                     style={styles.input}
+                    value={experienceLevel}
+                    onChangeText={setExperienceLevel}
                 />
               </View>
 
               {/* Button */}
-              <TouchableOpacity style={styles.submitBtn}>
-                  <Text style={styles.submitText}>Cập nhật</Text>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.submitText}>Cập nhật</Text>
+                  )}
               </TouchableOpacity>
               </ScrollView>
           </View>
