@@ -5,68 +5,72 @@ import { LinearGradient } from 'expo-linear-gradient';
 import BackgroundContainer from '../../components/common/BackgroundContainer';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import AppLayout from '@/components/custom/AppLayout';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 
 const SetUpProfileScreen = () => {
   
   return (
-      <BackgroundContainer>
-        <View
-            
-            style={styles.background}
-        >
-            {/* Header */}
-            <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
-                <Ionicons name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Thiết lập thông tin cá nhân</Text>
-            <View style={{ width: 24 }} /> {/* giữ cân đối */}
-            </View>
+      <AppLayout>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View
+              
+              style={styles.background}
+          >
+              {/* Header */}
+              <View style={styles.header}>
+              <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
+                  <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Thiết lập thông tin cá nhân</Text>
+              <View style={{ width: 24 }} /> {/* giữ cân đối */}
+              </View>
 
-            {/* Nội dung */}
-            <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>Hãy chia sẻ đôi nét về bạn</Text>
-            <Text style={styles.subtitle}>
-                Điều này sẽ giúp chúng tôi cá nhân hóa buổi luyện phỏng vấn cho bạn.
-            </Text>
+              {/* Nội dung */}
+              <ScrollView contentContainerStyle={styles.content}>
+              <Text style={styles.title}>Hãy chia sẻ đôi nét về bạn</Text>
+              <Text style={styles.subtitle}>
+                  Điều này sẽ giúp chúng tôi cá nhân hóa buổi luyện phỏng vấn cho bạn.
+              </Text>
 
-            {/* Avatar */}
-            <View style={styles.avatarWrapper}>
-                <View style={styles.avatarCircle}>
-                <Ionicons name="person" size={48} color="#7CF3FF" />
-                </View>
-                <TouchableOpacity style={styles.changeBtn}>
-                <Text style={styles.changeText}>Thay đổi</Text>
-                </TouchableOpacity>
-            </View>
+              {/* Avatar */}
+              <View style={styles.avatarWrapper}>
+                  <View style={styles.avatarCircle}>
+                  <Ionicons name="person" size={48} color="#7CF3FF" />
+                  </View>
+                  <TouchableOpacity style={styles.changeBtn}>
+                  <Text style={styles.changeText}>Thay đổi</Text>
+                  </TouchableOpacity>
+              </View>
 
-            {/* Form */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nghề nghiệp</Text>
-              <TextInput
-                  placeholder="Software Engineering"
-                  placeholderTextColor="#ccc"
-                  style={styles.input}
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Kinh nghiệm làm việc</Text>
-              <TextInput
-                  placeholder="Junior"
-                  placeholderTextColor="#ccc"
-                  style={styles.input}
-              />
-            </View>
+              {/* Form */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nghề nghiệp</Text>
+                <TextInput
+                    placeholder="Software Engineering"
+                    placeholderTextColor="#ccc"
+                    style={styles.input}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Kinh nghiệm làm việc</Text>
+                <TextInput
+                    placeholder="Junior"
+                    placeholderTextColor="#ccc"
+                    style={styles.input}
+                />
+              </View>
 
-            {/* Button */}
-            <TouchableOpacity style={styles.submitBtn}>
-                <Text style={styles.submitText}>Cập nhật</Text>
-            </TouchableOpacity>
-            </ScrollView>
-        </View>
-        </BackgroundContainer>
+              {/* Button */}
+              <TouchableOpacity style={styles.submitBtn}>
+                  <Text style={styles.submitText}>Cập nhật</Text>
+              </TouchableOpacity>
+              </ScrollView>
+          </View>
+        </SafeAreaView>
+      </AppLayout>
   );
 };
 
