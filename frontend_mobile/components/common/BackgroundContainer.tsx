@@ -32,7 +32,6 @@ const BackgroundContainer: React.FC<BackgroundContainerProps> = ({
       {withOverlay && <View style={styles.overlay} />}
       <SafeAreaView style={styles.container}>
         {children}
-        <ChatFloating/>
       </SafeAreaView>
     </ImageBackground>
   );

@@ -16,6 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import AppLayout from '@/components/custom/AppLayout';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ChatFloating from '@/components/chatFloating';
 
 // ====== Mock: lịch sử gần đây (có thể thay bằng data thật) ======
 type HistoryItem = {
@@ -118,7 +119,7 @@ export default function HomeScreen() {
     <BackgroundContainer>
       
         <StatusBar barStyle="light-content" />
-
+        <ChatFloating />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {/* Top bar brand + actions */}
           

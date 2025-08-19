@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       
       // Điều hướng về màn hình đăng nhập 
-      router.replace('./auth/index');
+      router.replace('/(auth)');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
