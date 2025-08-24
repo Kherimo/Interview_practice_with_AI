@@ -1,3 +1,4 @@
+# database.py (No major changes needed, but added some comments and ensured migrations handle new fields if any)
 import os
 from sqlalchemy import (
     create_engine,
@@ -133,6 +134,7 @@ class InterviewAnswer(Base):
     answer = Column(Text, nullable=False)
     feedback = Column(Text)
     score = Column(Float)
+    user_answer_audio_url = Column(String(255))  # Thêm field này
     created_at = Column(DateTime, server_default=func.now())
 
 
@@ -234,3 +236,4 @@ def check_connection():
     except Exception as exc:
         print(f"Database connection failed: {exc}")
         return False
+    
