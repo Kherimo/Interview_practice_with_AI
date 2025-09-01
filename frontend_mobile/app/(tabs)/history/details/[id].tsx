@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -13,6 +15,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import BackgroundContainer from '../../../../components/common/BackgroundContainer'; 
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getInterviewDetail } from '../../../../services/interviewService';
 
 type QAItem = {
   id: string;
@@ -28,25 +31,10 @@ type DetailData = {
   questions: number;
   duration: number;
   qa: QAItem[];
-};
-
-// Mock chi tiết – thực tế bạn lấy theo id từ params
-const MOCK_DETAIL: Record<string, DetailData> = {
-  '1': {
-    id: '1',
-    title: 'Phỏng vấn IT - Senior Developer',
-    domain: 'IT',
-    averageScore: 7.8,
-    questions: 5,
-    duration: 12,
-    qa: [
-      { id: 'q1', question: 'Hãy giới thiệu về bản thân và kinh nghiệm làm việc của bạn.', score: 8.5 },
-      { id: 'q2', question: 'Điểm mạnh và điểm yếu của bạn là gì?', score: 7.2 },
-      { id: 'q3', question: 'Tại sao bạn muốn làm việc tại công ty chúng tôi?', score: 6.8 },
-      { id: 'q4', question: 'Một dự án khó nhất bạn từng tham gia và vai trò của bạn?', score: 7.9 },
-      { id: 'q5', question: 'Bạn định hướng phát triển sự nghiệp như thế nào trong 2-3 năm?', score: 8.0 },
-    ],
-  },
+  field: string;
+  position: string;
+  experience_level: string;
+  created_at: string;
 };
 
 export default function HistoryDetailScreen() {
@@ -54,12 +42,64 @@ export default function HistoryDetailScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const [data, setData] = useState<DetailData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Lấy data theo id (fallback về '1' để demo)
-  const data: DetailData = useMemo(() => {
-    const id = params?.id && MOCK_DETAIL[params.id] ? params.id : '1';
-    return MOCK_DETAIL[id];
+  // Fetch interview detail data
+  useEffect(() => {
+    if (params?.id) {
+      fetchInterviewDetail(params.id);
+    }
   }, [params?.id]);
+
+  const fetchInterviewDetail = async (sessionId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getInterviewDetail(sessionId);
+      setData(response.detail);
+    } catch (err) {
+      console.error('Error fetching interview detail:', err);
+      setError('Không thể tải chi tiết phỏng vấn');
+      Alert.alert('Lỗi', 'Không thể tải chi tiết phỏng vấn. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <BackgroundContainer withOverlay={false}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4DE9B1" />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            Đang tải chi tiết phỏng vấn...
+          </Text>
+        </View>
+      </BackgroundContainer>
+    );
+  }
+
+  // Show error state
+  if (error || !data) {
+    return (
+      <BackgroundContainer withOverlay={false}>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>
+            {error || 'Không tìm thấy thông tin phỏng vấn'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => params?.id && fetchInterviewDetail(params.id)}
+          >
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      </BackgroundContainer>
+    );
+  }
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return '#2CE59A';      // xanh lá
@@ -151,8 +191,9 @@ export default function HistoryDetailScreen() {
         data={data.qa}
         keyExtractor={(i) => i.id}
         renderItem={renderQAItem}
-
-        contentContainerStyle={{paddingBottom: 130 }} // Tăng padding cho danh sách để tránh bị che bởi nút và tab bar
+        contentContainerStyle={{paddingBottom: 130 }}
+        refreshing={loading}
+        onRefresh={() => params?.id && fetchInterviewDetail(params.id)}
       />
       {/* Nút tiếp tục luyện tập (fixed) */}
       <View style={styles.footer}>
@@ -283,5 +324,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#4DE9B1',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#00141A',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

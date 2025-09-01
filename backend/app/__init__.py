@@ -26,11 +26,12 @@ def create_app():
     app.register_blueprint(users_bp)
     app.register_blueprint(interviews_bp)
 
-    from app.database import Base, engine, migrate_user_settings, migrate_interview_sessions
+    from app.database import Base, engine, migrate_user_settings, migrate_interview_sessions, migrate_remove_session_columns
     with app.app_context():
         Base.metadata.create_all(bind=engine)
         migrate_user_settings()
         migrate_interview_sessions()
+        migrate_remove_session_columns()
 
     @app.route("/")
     def index():

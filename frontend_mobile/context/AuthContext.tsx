@@ -31,6 +31,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;  // Hàm đăng xuất
   isAuthenticated: boolean;  // Trạng thái đã xác thực hay chưa
   updateUser: (partial: Partial<User>) => Promise<void>;
+  handleTokenInvalid: () => Promise<void>;
 };
 
 // Tạo context với các giá trị mặc định
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   isAuthenticated: false,
   updateUser: async () => {},
+  handleTokenInvalid: async () => {},
 });
 
 // Storage keys
@@ -88,6 +90,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
       setUser(parsedUser);
+      
+      // Kiểm tra xem user đã có thông tin profession và experience_level chưa
+      if (!parsedUser.profession || !parsedUser.experienceLevel) {
+        // Chuyển đến màn hình thiết lập thông tin
+        router.replace('/(auth)/setUpProfile');
+      } else {
+        // Chuyển đến màn hình chính
+        router.replace('/(tabs)/home');
+      }
+      
       return { ok: true, user: parsedUser };
     } catch (error: any) {
       return { ok: false, error: error?.message || 'Đăng nhập thất bại' };
@@ -111,6 +123,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(parsedUser));
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
       setUser(parsedUser);
+      
+      // Kiểm tra xem user đã có thông tin profession và experience_level chưa
+      if (!parsedUser.profession || !parsedUser.experienceLevel) {
+        // Chuyển đến màn hình thiết lập thông tin
+        router.replace('/(auth)/setUpProfile');
+      } else {
+        // Chuyển đến màn hình chính
+        router.replace('/(tabs)/home');
+      }
+      
       return { ok: true, user: parsedUser };
     } catch (error: any) {
       return { ok: false, error: error?.message || 'Đăng ký thất bại' };
@@ -152,6 +174,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(merged));
         return merged;
       });
+    },
+    handleTokenInvalid: async () => {
+      try {
+        await AsyncStorage.removeItem(USER_STORAGE_KEY);
+        await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+        setUser(null);
+        router.replace('/(auth)');
+      } catch (error) {
+        console.error('Error handling token invalid:', error);
+      }
     },
   };
 

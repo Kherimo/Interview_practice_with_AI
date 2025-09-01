@@ -9,8 +9,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { getNextQuestion, submitAnswer, finishInterview } from '@/services/interviewService';
 import BackgroundContainer from '@/components/common/BackgroundContainer';
 import { useTheme } from '@/context/ThemeContext';
 import InfoPopup from '@/components/common/InfoPopup';
@@ -23,9 +25,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Phase = 'idle' | 'recording' | 'answered';
 
-const QUESTION =
-  'Tell me about a challenging project you worked on recently. What obstacles did you face and how did you overcome them?';
-
 export default function VoiceInterviewScreen() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -36,18 +35,25 @@ export default function VoiceInterviewScreen() {
   }>();
 
   const title = specialty || 'Software Engineering';
-  const questionIndex = Number(qIndex || 5);
-  const questionTotal = Number(qTotal || 8);
-  const { time } = useLocalSearchParams(); 
+  const [questionIndex, setQuestionIndex] = useState<number>(Number(qIndex || 1));
+  const [questionTotal, setQuestionTotal] = useState<number>(Number(qTotal || 5));
+  const { time, sessionId } = useLocalSearchParams(); 
   const interviewTime = Number(time) * 60; // chuyển phút -> giây
   const [interviewCountdown, setInterviewCountdown] = useState(interviewTime);
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [timer, setTimer] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | number | null>(null);
+  const [questionText, setQuestionText] = useState('');
   const [transcript, setTranscript] = useState('');
   const [showEndPopup, setShowEndPopup] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [questionId, setQuestionId] = useState<number | null>(null);
+
+  // audio recording/playback state
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [recordingUri, setRecordingUri] = useState<string | null>(null);
 
   // Simple waveform animation (fake)
   const bars = new Array(16).fill(0);
@@ -92,6 +98,23 @@ export default function VoiceInterviewScreen() {
   return () => clearInterval(interval);
 }, []);
 
+  // Fetch first question
+  useEffect(() => {
+    const fetchQuestion = async () => {
+      try {
+        if (!sessionId) return;
+        const res = await getNextQuestion(String(sessionId));
+        if (res?.question) setQuestionText(res.question);
+        if (typeof res?.question_number === 'number') setQuestionIndex(res.question_number);
+        if (typeof res?.total_questions === 'number') setQuestionTotal(res.total_questions);
+        if (res?.question_id) setQuestionId(res.question_id);
+      } catch (e) {
+        console.error('Fetch question failed', e);
+      }
+    };
+    fetchQuestion();
+  }, [sessionId]);
+
   // timer
   useEffect(() => {
     // Di chuyển các hàm vào bên trong useEffect
@@ -128,10 +151,111 @@ export default function VoiceInterviewScreen() {
     return `${mm}:${ss}`;
   }, [timer]);
 
-  const onTapMic = () => setPhase('recording');
-  const onStop = () => {
-    setPhase('answered');
-    setTranscript(QUESTION); // demo: lấy chính câu hỏi làm transcript giả
+  const onTapMic = async () => {
+    try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setRecordingUri(null);
+      setPhase('recording');
+    } catch (e) {
+      console.error('Start recording failed', e);
+    }
+  };
+  const onStop = async () => {
+    try {
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync();
+        const uri = recordingRef.current.getURI();
+        setRecordingUri(uri || null);
+      }
+    } catch (e) {
+      console.error('Stop recording failed', e);
+    } finally {
+      setPhase('answered');
+    }
+  };
+
+  const onReplay = async () => {
+    try {
+      if (!recordingUri) return;
+      const { sound } = await Audio.Sound.createAsync({ uri: recordingUri });
+      setSound(sound);
+      await sound.playAsync();
+    } catch (e) {
+      console.error('Replay failed', e);
+    }
+  };
+
+  const onReRecord = async () => {
+    try {
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      }
+    } catch {}
+    setRecordingUri(null);
+    setTranscript('');
+    setPhase('idle');
+  };
+
+  const onSubmit = async () => {
+    try {
+      if (!sessionId || !questionId) return;
+      await submitAnswer({
+        sessionId: String(sessionId),
+        questionId: String(questionId),
+        answerText: transcript || 'Voice answer',
+        audioUri: recordingUri || undefined,
+      });
+      if (questionIndex >= questionTotal) {
+        // finish session
+        const result = await finishInterview(String(sessionId));
+        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+        return;
+      }
+      const res = await getNextQuestion(String(sessionId));
+      if (res?.question) setQuestionText(res.question);
+      if (res?.question_id) setQuestionId(res.question_id);
+      if (typeof res?.question_number === 'number') setQuestionIndex(res.question_number);
+      if (typeof res?.total_questions === 'number') setQuestionTotal(res.total_questions);
+      setTranscript('');
+      setRecordingUri(null);
+      setPhase('idle');
+    } catch (e) {
+      // Suppress errors to avoid noisy UI; navigate to result if at end
+      if (questionIndex >= questionTotal) {
+        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+      }
+    }
+  };
+
+  const onSkip = async () => {
+    try {
+      if (!sessionId) return;
+      if (questionIndex >= questionTotal) {
+        const result = await finishInterview(String(sessionId));
+        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+        return;
+      }
+      const res = await getNextQuestion(String(sessionId));
+      if (res?.question) setQuestionText(res.question);
+      if (res?.question_id) setQuestionId(res.question_id);
+      if (typeof res?.question_number === 'number') setQuestionIndex(res.question_number);
+      if (typeof res?.total_questions === 'number') setQuestionTotal(res.total_questions);
+      setTranscript('');
+      setRecordingUri(null);
+      setPhase('idle');
+    } catch (e) {
+      // Suppress errors; if already at end, go to results
+      if (questionIndex >= questionTotal) {
+        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+      }
+    }
   };
 
   return (
@@ -180,7 +304,7 @@ export default function VoiceInterviewScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.bubbleText}>{QUESTION}</Text>
+                <Text style={styles.bubbleText}>{questionText}</Text>
 
                 <View style={{ height: 10 }} />
                 <View style={styles.tinyWave}>
@@ -244,20 +368,28 @@ export default function VoiceInterviewScreen() {
               <View style={styles.bubbleHeader}>
                 <Text style={[styles.bubbleTag, { color: '#7CF3FF' }]}>Câu trả lời của bạn</Text>
                 <View style={styles.bubbleActions}>
-                  <TouchableOpacity style={styles.iconRound}>
+                  <TouchableOpacity style={styles.iconRound} onPress={onReplay}>
                     <MaterialCommunityIcons name="volume-high" size={16} color="#00141A" />
                   </TouchableOpacity>
                   {/* <TouchableOpacity><Text style={styles.replayText}>Phát lại</Text></TouchableOpacity> */}
                 </View>
               </View>
-              <Text style={styles.answerText}>{transcript}</Text>
+              <Text style={styles.answerText}>{transcript || 'Đã ghi âm câu trả lời. Bạn có thể nghe lại hoặc ghi âm lại.'}</Text>
+              <View style={{ flexDirection:'row', gap:12, marginTop:12 }}>
+                <TouchableOpacity onPress={onReRecord} style={[styles.controlBtn, { backgroundColor:'#FF8080' }]}>
+                  <Text style={styles.controlBtnText}>Ghi âm lại</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onSubmit} style={[styles.controlBtn, { backgroundColor:'#7CF3FF' }]}>
+                  <Text style={styles.controlBtnText}>Gửi & Tiếp theo</Text>
+                </TouchableOpacity>
+              </View>
             </LinearGradient>
           )}
         </View>
       </ScrollView>
       {/* Bottom controls */}
       <View style={styles.bottomRow}>
-        <TouchableOpacity style={styles.bottomBtn}>
+        <TouchableOpacity style={styles.bottomBtn} onPress={onSkip}>
           <MaterialCommunityIcons name="skip-next-outline" size={24} color="#DFF9FF" />
           <Text style={styles.bottomTxt}>Bỏ qua</Text>
         </TouchableOpacity>
@@ -275,7 +407,7 @@ export default function VoiceInterviewScreen() {
           buttonText="Xem kết quả"
           onClose={() => {
             setShowEndPopup(false);
-            router.push('/interview/interviewResult');
+            router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
           }}
           type="success"
         />
@@ -365,6 +497,8 @@ avatar: { width:80, height:120, borderRadius:26, marginTop:6 },
 
   answerCard: { marginHorizontal: 16, borderRadius: 16, padding: 14 },
   answerText: { color: '#FFFFFF', marginTop: 8, lineHeight: 20 },
+  controlBtn: { paddingVertical:10, paddingHorizontal:14, borderRadius:10 },
+  controlBtnText: { color:'#00141A', fontWeight:'700' },
 
   bottomRow: {
     marginTop: 'auto',

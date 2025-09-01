@@ -46,10 +46,7 @@ const RegisterScreen = () => {
       return;
     }
     const result = await signUp(email, password, fullName);
-    if (result.ok) {
-      // Điều hướng tới thiết lập thông tin cá nhân để cập nhật nghề nghiệp/kinh nghiệm
-      router.replace('/setUpProfile');
-    } else {
+    if (!result.ok) {
       setWarningTitle('Lỗi');
       setWarningMessage(result.error || 'Đăng ký thất bại. Vui lòng thử lại.');
       setPopupType('error');

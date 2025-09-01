@@ -14,6 +14,22 @@ export type AuthResponse = {
   };
 };
 
+export type GoogleLoginRequest = {
+  email: string;
+  name: string;
+  provider_id: string;
+};
+
+export type ForgotPasswordRequest = {
+  email: string;
+};
+
+export type ResetPasswordRequest = {
+  email: string;
+  token: string;
+  password: string;
+};
+
 async function handleResponse(res: Response) {
   const rawText = await res.text();
   let data: any = null;
@@ -24,7 +40,14 @@ async function handleResponse(res: Response) {
   }
   if (!res.ok) {
     const message = (data && (data.error || data.message)) || rawText || res.statusText;
-    throw new Error(typeof message === 'string' ? message : 'Request failed');
+    const error = new Error(typeof message === 'string' ? message : 'Request failed');
+    
+    // Kiểm tra nếu là lỗi token invalid (401)
+    if (res.status === 401) {
+      error.name = 'TokenInvalid';
+    }
+    
+    throw error;
   }
   return data;
 }
@@ -43,6 +66,33 @@ export async function register(fullName: string, email: string, password: string
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: fullName, email, password }),
+  });
+  return handleResponse(res);
+}
+
+export async function loginWithGoogle(googleData: GoogleLoginRequest): Promise<{ token: string }> {
+  const res = await fetch(`${API_URL}/auth/login/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(googleData),
+  });
+  return handleResponse(res);
+}
+
+export async function forgotPassword(request: ForgotPasswordRequest): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  return handleResponse(res);
+}
+
+export async function resetPassword(request: ResetPasswordRequest): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
   });
   return handleResponse(res);
 }
@@ -87,6 +137,27 @@ export async function getCurrentUser(): Promise<MeResponse> {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+  });
+  return handleResponse(res);
+}
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export async function changePassword(request: ChangePasswordRequest): Promise<{ message: string }> {
+  const token = await AsyncStorage.getItem('@preptalk_token');
+  const res = await fetch(`${API_URL}/users/change-password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      current_password: request.currentPassword,
+      new_password: request.newPassword,
+    }),
   });
   return handleResponse(res);
 }

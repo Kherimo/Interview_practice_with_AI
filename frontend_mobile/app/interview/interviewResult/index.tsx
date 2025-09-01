@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext'; 
 import BackgroundContainer from '../../../components/common/BackgroundContainer'; 
+import { getQuestionsAnswers } from '@/services/interviewService';
 
 type QAItem = {
   id: string;
@@ -51,11 +52,39 @@ export default function ResultScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const { theme } = useTheme();
+  const [qa, setQa] = useState<QAItem[]>([]);
+  const [title, setTitle] = useState<string>('Kết quả phỏng vấn');
+  const [domain, setDomain] = useState<string>('');
+  const [questionsCount, setQuestionsCount] = useState<number>(0);
+  const [avgScore, setAvgScore] = useState<number>(0);
 
-  // Lấy data theo id (fallback về '1' để demo)
-  const data: ResultData = useMemo(() => {
-    const id = params?.id && MOCK_DETAIL[params.id] ? params.id : '1';
-    return MOCK_DETAIL[id];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        if (!params?.id) return;
+        const res = await getQuestionsAnswers(String(params.id));
+        const items = (res?.questions_answers || []) as any[];
+        const mapped: QAItem[] = items.map((it: any) => ({
+          id: String(it.question_id),
+          question: it.question,
+          score: typeof it.score === 'number' ? it.score : 0,
+        }));
+        setQa(mapped);
+        setQuestionsCount(mapped.length);
+        // Basic derived values (domain/title require another API; placeholder)
+        setTitle('Kết quả phỏng vấn');
+        setDomain('');
+        if (mapped.length) {
+          const sum = mapped.reduce((s, x) => s + (x.score || 0), 0);
+          setAvgScore(Number((sum / mapped.length).toFixed(1)));
+        } else {
+          setAvgScore(0);
+        }
+      } catch (e) {
+        // ignore errors on result view
+      }
+    };
+    load();
   }, [params?.id]);
 
   const getScoreColor = (score: number) => {
@@ -71,7 +100,7 @@ export default function ResultScreen() {
       onPress={() => {
         router.push({
           pathname: "/interview/interviewResultDetails/[questionId]",
-          params: { questionId: item.id, interviewId: data.id }
+          params: { questionId: item.id, interviewId: String(params?.id || '') }
         });
       }}
       activeOpacity={0.7}
@@ -109,7 +138,7 @@ export default function ResultScreen() {
           numberOfLines={1}
           style={[styles.headerTitle, { color: theme.colors.white }]}
         >
-          {data.title}
+          {title}
         </Text>
 
         <TouchableOpacity style={styles.headerBtn} onPress={() => { /* share */ }}>
@@ -119,20 +148,20 @@ export default function ResultScreen() {
 
       {/* Card điểm + stats */}
         <View style={[styles.scoreCard, styles.cardBorder]}>
-            <Text style={styles.bigScore}>{data.averageScore.toFixed(1)}</Text>
+            <Text style={styles.bigScore}>{avgScore.toFixed(1)}</Text>
             <Text style={styles.bigScoreLabel}>Điểm trung bình</Text>
 
             <View style={styles.topStatsRow}>
                 <View style={styles.topStat}>
-                    <Text style={styles.topStatValue}>{data.questions}</Text>
+                    <Text style={styles.topStatValue}>{questionsCount}</Text>
                     <Text style={styles.topStatLabel}>Câu hỏi</Text>
                 </View>
                 <View style={styles.topStat}>
-                    <Text style={styles.topStatValue}>{data.duration}</Text>
+                    <Text style={styles.topStatValue}>{0}</Text>
                     <Text style={styles.topStatLabel}>Phút</Text>
                 </View>
                 <View style={styles.topStat}>
-                    <Text style={styles.topStatValue}>{data.domain}</Text>
+                    <Text style={styles.topStatValue}>{domain || '—'}</Text>
                     <Text style={styles.topStatLabel}>Lĩnh vực</Text>
                 </View>
             </View>
@@ -144,7 +173,7 @@ export default function ResultScreen() {
       </Text>
 
       <FlatList
-        data={data.qa}
+        data={qa}
         keyExtractor={(i) => i.id}
         renderItem={renderQAItem}
         contentContainerStyle={{ paddingBottom: 130 }} // Tăng padding cho danh sách để tránh bị che bởi nút và tab bar

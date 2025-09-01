@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -17,28 +18,19 @@ import BackgroundContainer from '../../../components/common/BackgroundContainer'
 import AppLayout from '@/components/custom/AppLayout';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ChatFloating from '@/components/chatFloating';
+import { getInterviewHistory, getUserStats, InterviewHistoryItem, UserStats } from '@/services/interviewService';
 
-// ====== Mock: lịch sử gần đây (có thể thay bằng data thật) ======
-type HistoryItem = {
-  id: string;
-  date: string;
-  title: string;
-  score: number;
-  questions: number;
-  duration: number;
-};
-const historyData: HistoryItem[] = [
-  { id: '1', date: 'Hôm nay • 14:30', title: 'Phỏng vấn IT - Senior Developer', score: 8.2, questions: 5, duration: 12 },
-  { id: '2', date: 'Hôm nay • 09:15', title: 'Phỏng vấn Marketing - Manager', score: 7.8, questions: 4, duration: 8 },
-  { id: '3', date: 'Hôm qua • 16:40', title: 'Phỏng vấn Product - Associate', score: 6.5, questions: 5, duration: 10 },
-  { id: '4', date: '2 ngày trước • 11:10', title: 'Phỏng vấn QA - Junior', score: 7.1, questions: 4, duration: 9 },
-];
+// ====== Real data from API ======
+type HistoryItem = InterviewHistoryItem;
 
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, handleTokenInvalid } = useAuth();
   const [greeting, setGreeting] = useState('Chào buổi sáng');
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -47,7 +39,74 @@ export default function HomeScreen() {
     else setGreeting('Chào buổi tối');
   }, []);
 
-  const top3 = useMemo(() => historyData.slice(0, 3), []);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [historyResponse, statsResponse] = await Promise.all([
+          getInterviewHistory(),
+          getUserStats()
+        ]);
+        setHistoryData(historyResponse.history);
+        setUserStats(statsResponse.stats);
+      } catch (error: any) {
+        if (error?.name === 'TokenInvalid') {
+          await handleTokenInvalid();
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [handleTokenInvalid]);
+
+  // Tính toán dữ liệu chính xác từ API
+  const calculatedStats = useMemo(() => {
+    if (!historyData || !userStats) {
+      return {
+        completedSessions: 0,
+        averageScore: 0,
+        totalSessions: 0,
+        recentSessions: 0,
+        recentAverageScore: 0,
+        bestScore: 0
+      };
+    }
+
+    // Tính số buổi đã hoàn thành từ history (có điểm > 0)
+    const completedSessions = historyData.filter(item => item.score > 0).length;
+    
+    // Tính điểm trung bình từ history (chỉ những buổi có điểm)
+    const sessionsWithScores = historyData.filter(item => item.score > 0);
+    const totalScore = sessionsWithScores.reduce((sum, item) => sum + item.score, 0);
+    const averageScore = sessionsWithScores.length > 0 ? totalScore / sessionsWithScores.length : 0;
+    
+    // Lấy 5 buổi gần nhất để tính điểm trung bình gần đây
+    const recentSessions = Math.min(5, completedSessions);
+    const recentScores = sessionsWithScores.slice(0, 5);
+    const recentAverageScore = recentScores.length > 0 
+      ? recentScores.reduce((sum, item) => sum + item.score, 0) / recentScores.length 
+      : 0;
+    
+    // Điểm cao nhất
+    const bestScore = sessionsWithScores.length > 0 
+      ? Math.max(...sessionsWithScores.map(item => item.score))
+      : 0;
+    
+    // Tổng số buổi từ stats
+    const totalSessions = userStats.total_sessions || 0;
+
+    return {
+      completedSessions,
+      averageScore,
+      totalSessions,
+      recentSessions,
+      recentAverageScore,
+      bestScore
+    };
+  }, [historyData, userStats]);
+
+  const top3 = useMemo(() => historyData.slice(0, 3), [historyData]);
 
   const handleStartInterview = () => router.push('/interview');
   const handleViewHistory = () => router.push('/(tabs)/history');
@@ -193,33 +252,44 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
             <View style={{ flex: 1, gap: 10 }}>
-              <LinearGradient
-                colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
-                start={{ x: 0.05, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.smallStat, styles.cardBorder]}
-              >
-                <View style={styles.statInline}>
-                  <Text style={styles.smallLabel}>Tiến trình của bạn</Text>
-                  <MaterialCommunityIcons name="trending-up" size={20} color="#7CF3FF" />
-                </View>
-                <Text style={styles.smallValue}>12</Text>
-                <Text style={styles.smallSub}>Buổi luyện tập đã hoàn thành</Text>
-              </LinearGradient>
+                             <LinearGradient
+                 colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
+                 start={{ x: 0.05, y: 0 }}
+                 end={{ x: 1, y: 1 }}
+                 style={[styles.smallStat, styles.cardBorder]}
+               >
+                 <View style={styles.statInline}>
+                   <Text style={styles.smallLabel}>Tiến trình của bạn</Text>
+                   <MaterialCommunityIcons name="trending-up" size={20} color="#7CF3FF" />
+                 </View>
+                 <Text style={styles.smallValue}>{calculatedStats.completedSessions}</Text>
+                 <Text style={styles.smallSub}>
+                   {calculatedStats.totalSessions > 0 
+                     ? `${calculatedStats.completedSessions}/${calculatedStats.totalSessions} buổi hoàn thành`
+                     : 'Buổi luyện tập đã hoàn thành'
+                   }
+                 </Text>
+               </LinearGradient>
 
-              <LinearGradient
-                colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
-                start={{ x: 0.05, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.smallStat, styles.cardBorder]}
-              >
-                <View style={styles.statInline}>
-                  <Text style={styles.smallLabel}>Điểm trung bình</Text>
-                  <MaterialCommunityIcons name="medal-outline" size={20} color="#7CF3FF" />
-                </View>
-                <Text style={styles.smallValue}>8.4/10</Text>
-                <Text style={styles.smallSub}>5 buổi luyện tập gần nhất</Text>
-              </LinearGradient>
+               <LinearGradient
+                 colors={['rgba(86,0,255,0.45)', 'rgba(0,201,255,0.25)']}
+                 start={{ x: 0.05, y: 0 }}
+                 end={{ x: 1, y: 1 }}
+                 style={[styles.smallStat, styles.cardBorder]}
+               >
+                 <View style={styles.statInline}>
+                   <Text style={styles.smallLabel}>Điểm trung bình</Text>
+                   <MaterialCommunityIcons name="medal-outline" size={20} color="#7CF3FF" />
+                 </View>
+                 <Text style={styles.smallValue}>{calculatedStats.recentAverageScore > 0 ? `${calculatedStats.recentAverageScore.toFixed(1)}/10` : '0.0/10'}</Text>
+                 <Text style={styles.smallSub}>
+                   {calculatedStats.recentSessions > 0 
+                     ? `${calculatedStats.recentSessions} buổi gần nhất` 
+                     : 'Chưa có buổi luyện tập'
+                   }
+                   {calculatedStats.bestScore > 0 && ` • Cao nhất: ${calculatedStats.bestScore.toFixed(1)}`}
+                 </Text>
+               </LinearGradient>
             </View>
           </View>
 
@@ -232,9 +302,21 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            {top3.map((item) => (
-              <View key={item.id}>{renderHistoryItem({ item })}</View>
-            ))}
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#7CF3FF" />
+                <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+              </View>
+            ) : top3.length > 0 ? (
+              top3.map((item) => (
+                <View key={item.id}>{renderHistoryItem({ item })}</View>
+              ))
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Chưa có lịch sử phỏng vấn</Text>
+                <Text style={styles.emptySubText}>Bắt đầu luyện tập ngay để tạo lịch sử!</Text>
+              </View>
+            )}
           </View>
 
           <View style={{ height: 80 }} />
@@ -340,5 +422,28 @@ const styles = StyleSheet.create({
     fontSize: 14, fontWeight: '800',
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 999, overflow: 'hidden', textAlign: 'center',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    marginTop: 10,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
   },
 });

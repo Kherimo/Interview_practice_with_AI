@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
     ScrollView,
     StatusBar,
@@ -7,12 +7,15 @@ import {
     Text,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from 'react-native';
  
 import { useTheme } from '../../../context/ThemeContext';
+import { useAuth } from '../../../context/AuthContext';
  
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import { Dropdown } from 'react-native-element-dropdown';
+import { getUserStats, UserStats } from '@/services/interviewService';
 
 const mockScores = [
   { label: 'Dec 1', value: 4.8 },
@@ -37,8 +40,28 @@ const domains = [
 
 export default function ProgressScreen() {
   const { theme } = useTheme();
+  const { handleTokenInvalid } = useAuth();
   const [value, setValue] = useState(null);
-  const [isFocus, setIsFocus] = useState(false)
+  const [isFocus, setIsFocus] = useState(false);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getUserStats();
+        setUserStats(response.stats);
+      } catch (error: any) {
+        if (error?.name === 'TokenInvalid') {
+          await handleTokenInvalid();
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStats();
+  }, [handleTokenInvalid]);
 
   const renderLabel = () => {
     if (value || isFocus) {
@@ -54,11 +77,11 @@ export default function ProgressScreen() {
   const maxScore = 10;
   const stat = useMemo(
     () => ({
-      total: 24,
-      avg: 8.3,
-      best: 9.8,
+      total: userStats?.total_sessions || 0,
+      avg: userStats?.average_score || 0,
+      best: userStats?.recent_performance && userStats.recent_performance.length > 0 ? Math.max(...userStats.recent_performance) : 0,
     }),
-    []
+    [userStats]
   );
 
   return (
@@ -70,34 +93,41 @@ export default function ProgressScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        {/* 3 stats */}
-        <View style={styles.statRow}>
-          <View style={[styles.statCard]} >
-            <Text style={styles.statBig}>{stat.total}</Text>
-            <Text style={styles.statLabel}>Tổng buổi luyện</Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#7CF3FF" />
+            <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
           </View>
+        ) : (
+          <>
+            {/* 3 stats */}
+            <View style={styles.statRow}>
+              <View style={[styles.statCard]} >
+                <Text style={styles.statBig}>{stat.total}</Text>
+                <Text style={styles.statLabel}>Tổng buổi luyện</Text>
+              </View>
 
-          <View
-            style={[styles.statCard]}
-          >
-            <Text style={[styles.statBig, { color: '#2CE59A' }]}>{stat.avg.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>Điểm trung bình</Text>
-          </View>
+              <View
+                style={[styles.statCard]}
+              >
+                <Text style={[styles.statBig, { color: '#2CE59A' }]}>{stat.avg.toFixed(1)}</Text>
+                <Text style={styles.statLabel}>Điểm trung bình</Text>
+              </View>
 
-          <View 
-            style={[styles.statCard]}
-          >
-            <Text style={[styles.statBig, { color: '#9CF0FF' }]}>{stat.best.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>Điểm cao nhất</Text>
-          </View>
-        </View>
+              <View 
+                style={[styles.statCard]}
+              >
+                <Text style={[styles.statBig, { color: '#9CF0FF' }]}>{stat.best.toFixed(1)}</Text>
+                <Text style={styles.statLabel}>Điểm cao nhất</Text>
+              </View>
+            </View>
 
-        {/* Xu hướng điểm số */}
-        <View
-          style={[styles.block]}
-        >
-          <View style={styles.blockHeader}>
-            <Text style={styles.blockTitle}>Xu hướng điểm số</Text>
+                    {/* Xu hướng điểm số */}
+            <View
+              style={[styles.block]}
+            >
+              <View style={styles.blockHeader}>
+                <Text style={styles.blockTitle}>Xu hướng điểm số</Text>
             <Dropdown
             style={[styles.dropdown, isFocus && { borderColor: '#4ADEDE' }]}
             containerStyle={styles.dropdownContainer}
@@ -170,6 +200,8 @@ export default function ProgressScreen() {
             );
           })}
         </View>
+          </>
+        )}
       </ScrollView>
     </BackgroundContainer>
   );
@@ -311,5 +343,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFg: { height: '100%', borderRadius: 999, backgroundColor: '#2CE59A' },
-
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    marginTop: 10,
+  },
 });
