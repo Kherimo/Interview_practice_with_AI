@@ -16,15 +16,71 @@ import InfoPopup from '../../../components/common/InfoPopup';
 import { getCurrentUser, updateProfile } from '@/services/authService';
 import { IconWrapper } from '../../../components/common/IconWrapper';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Dropdown } from 'react-native-element-dropdown';
+import { useAuth } from '@/context/AuthContext';
+
+const FIELDS = [
+  { label: 'IT', value: 'IT' },
+  { label: 'Kinh doanh', value: 'Business' },
+  { label: 'Marketing', value: 'Marketing' },
+  { label: 'Tài chính', value: 'Finance' },
+  { label: 'Nhân sự', value: 'HR' },
+];
+
+const SPECIALIZATIONS_MAP: Record<string, { label: string; value: string }[]> = {
+  IT: [
+    { label: 'Frontend', value: 'Frontend' },
+    { label: 'Backend', value: 'Backend' },
+    { label: 'Mobile', value: 'Mobile' },
+    { label: 'Data/AI', value: 'Data' },
+    { label: 'QA/Tester', value: 'QA' },
+    { label: 'DevOps', value: 'DevOps' },
+    { label: 'Product', value: 'Product' },
+  ],
+  Business: [
+    { label: 'Business Analyst', value: 'Business Analyst' },
+    { label: 'Sales', value: 'Sales' },
+    { label: 'Operations', value: 'Operations' },
+    { label: 'Project Management', value: 'Project Management' },
+  ],
+  Marketing: [
+    { label: 'Digital Marketing', value: 'Digital Marketing' },
+    { label: 'Content', value: 'Content' },
+    { label: 'Performance', value: 'Performance' },
+    { label: 'SEO', value: 'SEO' },
+  ],
+  Finance: [
+    { label: 'Accounting', value: 'Accounting' },
+    { label: 'Auditing', value: 'Auditing' },
+    { label: 'Investment', value: 'Investment' },
+    { label: 'Financial Analysis', value: 'Financial Analysis' },
+  ],
+  HR: [
+    { label: 'Recruitment', value: 'Recruitment' },
+    { label: 'C&B', value: 'C&B' },
+    { label: 'HRBP', value: 'HRBP' },
+    { label: 'Training', value: 'Training' },
+  ],
+};
+
+const EXPERIENCES = [
+  { label: 'Fresher (0-1 năm)', value: 'fresher' },
+  { label: 'Junior (1-3 năm)', value: 'junior' },
+  { label: 'Middle (3-5 năm)', value: 'middle' },
+  { label: 'Senior (5+ năm)', value: 'senior' },
+];
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { handleTokenInvalid } = useAuth();
   
   // State for form fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [occupation, setOccupation] = useState<string | undefined>(undefined);
-  const [experience, setExperience] = useState<string | undefined>(undefined);
+  const [field, setField] = useState<string | null>(null);
+  const [specialization, setSpecialization] = useState<string | null>(null);
+  const [experience, setExperience] = useState<string | null>(null);
+  const [isFocus, setIsFocus] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [warningTitle, setWarningTitle] = useState('');
@@ -42,14 +98,26 @@ export default function EditProfileScreen() {
         const me = await getCurrentUser();
         setName(me.name || '');
         setEmail(me.email || '');
-        setOccupation(me.profession || undefined);
-        setExperience(me.experience_level || undefined);
-      } catch (e) {
-        // ignore
+        
+        // Parse profession to extract field and specialization
+        if (me.profession) {
+          const parts = me.profession.split(' - ');
+          if (parts.length >= 2) {
+            setField(parts[0]);
+            setSpecialization(parts[1]);
+          } else {
+            setField(me.profession);
+          }
+        }
+        setExperience(me.experience_level || null);
+      } catch (e: any) {
+        if (e?.name === 'TokenInvalid') {
+          await handleTokenInvalid();
+        }
       }
     };
     load();
-  }, []);
+  }, [handleTokenInvalid]);
 
   // Save changes and go back to profile
   const handleSaveChanges = async () => {
@@ -62,10 +130,15 @@ export default function EditProfileScreen() {
       return;
     }
     try {
-      await updateProfile({ name, email, profession: occupation, experience_level: experience });
+      const profession = field && specialization ? `${field} - ${specialization}` : field || '';
+      await updateProfile({ name, email, profession, experience_level: experience });
       setShowInfo(true);
     } catch (e: any) {
-      showWarningPopup('Lỗi', e?.message || 'Cập nhật hồ sơ thất bại');
+      if (e?.name === 'TokenInvalid') {
+        await handleTokenInvalid();
+      } else {
+        showWarningPopup('Lỗi', e?.message || 'Cập nhật hồ sơ thất bại');
+      }
     }
   };
 
@@ -143,19 +216,93 @@ export default function EditProfileScreen() {
           </View>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Nghề nghiệp</Text>
-            <TouchableOpacity style={styles.selectInput}>
-              <Text style={styles.selectText}>{occupation || 'Chưa cập nhật'}</Text>
-              <Ionicons name="chevron-down" size={20} color="rgba(255,255,255,0.8)" />
-            </TouchableOpacity>
+            <Text style={styles.inputLabel}>Lĩnh vực</Text>
+            <Dropdown
+              style={styles.dropdown}
+              containerStyle={styles.dropdownContainer}
+              itemContainerStyle={styles.itemContainerStyle}
+              activeColor='#4ADEDE'
+              itemTextStyle={{ color: '#ffffffff' }}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              inputSearchStyle={styles.inputSearchStyle}
+              iconStyle={styles.iconStyle}
+              data={FIELDS}
+              search
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder="Chọn lĩnh vực"
+              searchPlaceholder="Tìm kiếm..."
+              value={field}
+              onFocus={() => setIsFocus(true)}
+              onBlur={() => setIsFocus(false)}
+              onChange={item => {
+                setField(item.value);
+                const specs = SPECIALIZATIONS_MAP[item.value] || [];
+                setSpecialization(specs.length ? specs[0].value : null);
+                setIsFocus(false);
+              }}
+            />
+          </View>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Chuyên môn</Text>
+            <Dropdown
+              style={styles.dropdown}
+              containerStyle={styles.dropdownContainer}
+              itemContainerStyle={styles.itemContainerStyle}
+              activeColor='#4ADEDE'
+              itemTextStyle={{ color: '#ffffffff' }}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              inputSearchStyle={styles.inputSearchStyle}
+              iconStyle={styles.iconStyle}
+              data={SPECIALIZATIONS_MAP[field || 'IT']}
+              search
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder="Chọn chuyên môn"
+              searchPlaceholder="Tìm kiếm..."
+              value={specialization}
+              onFocus={() => setIsFocus(true)}
+              onBlur={() => setIsFocus(false)}
+              onChange={item => {
+                setSpecialization(item.value);
+                setIsFocus(false);
+              }}
+            />
           </View>
           
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Kinh nghiệm</Text>
-            <TouchableOpacity style={styles.selectInput}>
-              <Text style={styles.selectText}>{experience || 'Chưa cập nhật'}</Text>
-              <Ionicons name="chevron-down" size={20} color="rgba(255,255,255,0.8)" />
-            </TouchableOpacity>
+            <Dropdown
+              style={styles.dropdown}
+              containerStyle={styles.dropdownContainer}
+              itemContainerStyle={styles.itemContainerStyle}
+              activeColor='#4ADEDE'
+              itemTextStyle={{ color: '#ffffffff' }}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              inputSearchStyle={styles.inputSearchStyle}
+              iconStyle={styles.iconStyle}
+              data={EXPERIENCES}
+              search
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder="Chọn kinh nghiệm"
+              searchPlaceholder="Tìm kiếm..."
+              searchPlaceholderTextColor='#000'
+              value={experience}
+              onFocus={() => setIsFocus(true)}
+              onBlur={() => setIsFocus(false)}
+              onChange={item => {
+                setExperience(item.value);
+                setIsFocus(false);
+              }}
+            />
           </View>
         </View>
         
@@ -268,17 +415,41 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
-  selectInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  dropdown: {
+    height: 45,
+    borderColor: 'gray',
+    backgroundColor: 'rgba(217, 217, 217, 0.15)',
+    borderWidth: 0.5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
   },
-  selectText: {
-    color: '#fff',
+  dropdownContainer: {
+    borderRadius:0,
+    borderWidth: 0,
+    padding: 0,
+    backgroundColor: '#313674d5',
+  },
+  itemContainerStyle: {
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0.5,
+    borderColor: 'rgba(217,217,217,0.8)',
+  },
+  placeholderStyle: {
     fontSize: 16,
+    color:"#e6e6e6ff",
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+    color:"#4ADEDE",
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+    color: '#FFFFFF',
   },
   saveButton: {
     backgroundColor: 'rgba(79, 227, 230, 0.85)',

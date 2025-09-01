@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import { IconWrapper } from '../../../components/common/IconWrapper';
 import InfoPopup from '../../../components/common/InfoPopup';
+import { changePassword } from '@/services/authService';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -67,11 +68,7 @@ export default function ResetPasswordScreen() {
     try {
       setIsSubmitting(true);
       
-      // Mô phỏng thời gian xử lý API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // TODO: Thêm logic gọi API đổi mật khẩu thực tế ở đây
-      // await authAPI.changePassword({ currentPassword, newPassword });
+      await changePassword({ currentPassword, newPassword });
       
       setShowSuccess(true);
       
@@ -79,9 +76,8 @@ export default function ResetPasswordScreen() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error) {
-      showWarningPopup('Lỗi', 'Không thể đổi mật khẩu. Vui lòng thử lại sau.');
-      console.error('Error resetting password:', error);
+    } catch (error: any) {
+      showWarningPopup('Lỗi', error?.message || 'Không thể đổi mật khẩu. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);
     }

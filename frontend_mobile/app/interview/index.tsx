@@ -8,40 +8,93 @@ import { drop } from 'lodash'
 import ButtonCustom from '@/components/custom/ButtonCustom'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
-const data = [
-    { label: 'Item 1', value: '1' },
-    { label: 'Item 2', value: '2' },
-    { label: 'Item 3', value: '3' },
-    { label: 'Item 4', value: '4' },
-    { label: 'Item 5', value: '5' },
-    { label: 'Item 6', value: '6' },
-    { label: 'Item 7', value: '7' },
-    { label: 'Item 8', value: '8' },
-  ];
+import { startInterview } from '@/services/interviewService'
+const FIELDS = [
+  { label: 'IT', value: 'IT' },
+  { label: 'Kinh doanh', value: 'Business' },
+  { label: 'Marketing', value: 'Marketing' },
+  { label: 'Tài chính', value: 'Finance' },
+  { label: 'Nhân sự', value: 'HR' },
+];
+
+const SPECIALIZATIONS_MAP: Record<string, { label: string; value: string }[]> = {
+  IT: [
+    { label: 'Frontend', value: 'Frontend' },
+    { label: 'Backend', value: 'Backend' },
+    { label: 'Mobile', value: 'Mobile' },
+    { label: 'Data/AI', value: 'Data' },
+    { label: 'QA/Tester', value: 'QA' },
+    { label: 'DevOps', value: 'DevOps' },
+    { label: 'Product', value: 'Product' },
+  ],
+  Business: [
+    { label: 'Business Analyst', value: 'Business Analyst' },
+    { label: 'Sales', value: 'Sales' },
+    { label: 'Operations', value: 'Operations' },
+    { label: 'Project Management', value: 'Project Management' },
+  ],
+  Marketing: [
+    { label: 'Digital Marketing', value: 'Digital Marketing' },
+    { label: 'Content', value: 'Content' },
+    { label: 'Performance', value: 'Performance' },
+    { label: 'SEO', value: 'SEO' },
+  ],
+  Finance: [
+    { label: 'Accounting', value: 'Accounting' },
+    { label: 'Auditing', value: 'Auditing' },
+    { label: 'Investment', value: 'Investment' },
+    { label: 'Financial Analysis', value: 'Financial Analysis' },
+  ],
+  HR: [
+    { label: 'Recruitment', value: 'Recruitment' },
+    { label: 'C&B', value: 'C&B' },
+    { label: 'HRBP', value: 'HRBP' },
+    { label: 'Training', value: 'Training' },
+  ],
+};
+
+const EXPERIENCES = [
+  { label: 'Fresher (0-1 năm)', value: 'fresher' },
+  { label: 'Junior (1-3 năm)', value: 'junior' },
+  { label: 'Middle (3-5 năm)', value: 'middle' },
+  { label: 'Senior (5+ năm)', value: 'senior' },
+];
 
 
 
 const SetUpInfor = () => {
-    const [value, setValue] = useState(null);
+    const [field, setField] = useState<string | null>(FIELDS[0].value);
+    const [specialization, setSpecialization] = useState<string | null>(SPECIALIZATIONS_MAP[FIELDS[0].value][0].value);
+    const [experience, setExperience] = useState<string | null>(EXPERIENCES[1].value);
     const [isFocus, setIsFocus] = useState(false);
     const [time, setTime] = useState("30");
     const [questions, setQuestions] = useState("8");
     const { mode } = useLocalSearchParams();
-    const renderLabel = () => {
-      if (value || isFocus) {
-        return (
-          <Text style={[styles.label, isFocus && { color: 'blue' }]}>
-            Dropdown label
-          </Text>
-        );
+    const renderLabel = () => null;
+    const handleStartInterview = async () => {
+      try {
+        const payload = {
+          field: field || 'IT',
+          specialization: specialization || 'General',
+          experience_level: experience || 'junior',
+          time_limit: Number(time || '30'),
+          question_limit: Number(questions || '5'),
+          mode: (mode as string) || 'voice',
+          difficulty_setting: 'medium',
+        };
+        const res = await startInterview(payload as any);
+        const sessionId = res?.session_id || res?.id;
+        const totalQuestions = res?.total_questions || payload.question_limit;
+        if (!sessionId) {
+          throw new Error('Không tạo được phiên phỏng vấn');
+        }
+        router.push({
+          pathname: '/interview/interviewVoice',
+          params: { time, qTotal: String(totalQuestions), sessionId: String(sessionId), specialty: specialization || field || 'IT' }
+        });
+      } catch (e: any) {
+        console.error('Start interview failed', e?.message || e);
       }
-      return null;
-    };
-    const handleStartInterview = () => {
-      router.push({
-        pathname: '/interview/interviewVoice',
-        params: { time, questions }
-      });
     };
   return (
     <AppLayout>
@@ -68,18 +121,21 @@ const SetUpInfor = () => {
                 selectedTextStyle={styles.selectedTextStyle}
                 inputSearchStyle={styles.inputSearchStyle}
                 iconStyle={styles.iconStyle}
-                data={data}
+                data={FIELDS}
                 search
                 maxHeight={300}
                 labelField="label"
                 valueField="value"
-                placeholder="IT"
+                placeholder={FIELDS[0].label}
                 searchPlaceholder="Tìm kiếm..."
-                            value={value}
+                            value={field}
                 onFocus={() => setIsFocus(true)}
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
-                    setValue(item.value);
+                    setField(item.value);
+                    // Reset specialization to first of selected field
+                    const specs = SPECIALIZATIONS_MAP[item.value] || [];
+                    setSpecialization(specs.length ? specs[0].value : null);
                     setIsFocus(false);
                     }}
                 />
@@ -97,18 +153,18 @@ const SetUpInfor = () => {
                 selectedTextStyle={styles.selectedTextStyle}
                 inputSearchStyle={styles.inputSearchStyle}
                 iconStyle={styles.iconStyle}
-                data={data}
+                data={SPECIALIZATIONS_MAP[field || 'IT']}
                 search
                 maxHeight={300}
                 labelField="label"
                 valueField="value"
-                placeholder="IT"
+                placeholder={(SPECIALIZATIONS_MAP[field || 'IT'][0] || { label: 'Chọn chuyên môn' }).label}
                 searchPlaceholder="Tìm kiếm..."
-                            value={value}
+                            value={specialization}
                 onFocus={() => setIsFocus(true)}
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
-                    setValue(item.value);
+                    setSpecialization(item.value);
                     setIsFocus(false);
                     }}
                 />
@@ -126,19 +182,19 @@ const SetUpInfor = () => {
                 selectedTextStyle={styles.selectedTextStyle}
                 inputSearchStyle={styles.inputSearchStyle}
                 iconStyle={styles.iconStyle}
-                data={data}
+                data={EXPERIENCES}
                 search
                 maxHeight={300}
                 labelField="label"
                 valueField="value"
-                placeholder="IT"
+                placeholder={EXPERIENCES[1].label}
                 searchPlaceholder="Tìm kiếm..."
                 searchPlaceholderTextColor='#000'
-                            value={value}
+                            value={experience}
                 onFocus={() => setIsFocus(true)}
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
-                    setValue(item.value);
+                    setExperience(item.value);
                     setIsFocus(false);
                     }}
                 />

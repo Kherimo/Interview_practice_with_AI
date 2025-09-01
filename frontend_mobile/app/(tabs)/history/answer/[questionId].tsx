@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -13,6 +15,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import BackgroundContainer from '../../../../components/common/BackgroundContainer';
 import InfoPopup from '../../../../components/common/InfoPopup';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { getAnswerDetail } from '../../../../services/interviewService';
 
 // Định nghĩa type cho chi tiết câu trả lời
 type AnswerDetail = {
@@ -31,75 +34,75 @@ type AnswerDetail = {
   improvements: string[];
   interviewId: string;
   interviewTitle: string;
+  audio_url?: string;
 };
 
-// Mock data cho chi tiết câu trả lời
-const MOCK_ANSWERS: Record<string, AnswerDetail> = {
-  'q1': {
-    id: 'a1',
-    questionId: 'q1',
-    question: 'Điểm mạnh và điểm yếu của bạn là gì?',
-    answer: 'Trong 5 năm kinh nghiệm làm việc trong lĩnh vực phát triển phần mềm, chuyên về React.js và Node.js. Trước đây tôi làm dev tại một công ty khởi nghiệp với quy mô 20 người và gần đây đã chuyển đến BigCorp, nơi tôi đã dẫn dắt một nhóm gồm 5 người trong việc phát triển một dự án cho một ngân hàng lớn. Hiệu suất dẫn đến tăng 45% tỷ lệ giữ chân khách hàng trong vòng 3 tháng đầu.',
-    score: 8.2,
-    overallScore: {
-      speaking: 9.0,
-      content: 8.5,
-      relevance: 8.0
-    },
-    feedback: 'Phản hồi từ AI',
-    strengths: [
-      'Câu trả lời được trình bày rõ ràng với đủ chi tiết',
-      'Thể hiện kinh nghiệm lãnh đạo',
-      'Đưng điểm số và số liệu chuyên môn'
-    ],
-    improvements: [
-      'Nên bao gồm các kỹ năng cụ thể mà những thành viên đội đã được quản lý',
-      'Nên đề cập những bài học rút ra từ dự án'
-    ],
-    interviewId: '1',
-    interviewTitle: 'Phỏng vấn IT - Senior Developer'
-  },
-  'q2': {
-    id: 'a2',
-    questionId: 'q2',
-    question: 'Điểm mạnh và điểm yếu của bạn là gì?',
-    answer: 'Điểm mạnh của tôi là khả năng giải quyết vấn đề và tư duy logic. Tôi có thể phân tích các vấn đề phức tạp thành các phần nhỏ hơn để giải quyết hiệu quả. Tôi cũng rất chú trọng vào chất lượng code và luôn cố gắng tuân thủ các nguyên tắc clean code. Về điểm yếu, đôi khi tôi quá chi tiết và dành nhiều thời gian cho việc hoàn thiện, điều này có thể ảnh hưởng đến tiến độ. Tôi đang cố gắng cải thiện bằng cách ưu tiên các tác vụ và quản lý thời gian tốt hơn.',
-    score: 7.5,
-    overallScore: {
-      speaking: 8.0,
-      content: 7.5,
-      relevance: 7.0
-    },
-    feedback: 'Phản hồi từ AI',
-    strengths: [
-      'Nhận diện được điểm mạnh phù hợp với vị trí công việc',
-      'Đã đề cập đến cách khắc phục điểm yếu',
-      'Trả lời trung thực, không né tránh'
-    ],
-    improvements: [
-      'Nên đưa ra ví dụ cụ thể cho cả điểm mạnh và điểm yếu',
-      'Có thể mở rộng thêm về cách điểm mạnh đã giúp ích trong công việc trước đây',
-      'Điểm yếu nên chọn vấn đề không liên quan trực tiếp đến yêu cầu chính của công việc'
-    ],
-    interviewId: '1',
-    interviewTitle: 'Phỏng vấn IT - Senior Developer'
-  },
-};
+// Remove mock data - will use API instead
 
 export default function HistoryAnswerDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ questionId?: string, interviewId?: string }>();
   const { theme } = useTheme();
   const [showSavePopup, setShowSavePopup] = useState(false);
+  const [data, setData] = useState<AnswerDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Lấy data theo questionId
-  const data = useMemo(() => {
-    const questionId = params?.questionId || 'q1';
-    const answer = MOCK_ANSWERS[questionId];
-    
-    // Fallback to q1 if the requested question doesn't exist
-    return answer || MOCK_ANSWERS['q1'];
-  }, [params?.questionId]);
+  // Fetch answer detail data
+  useEffect(() => {
+    if (params?.questionId && params?.interviewId) {
+      fetchAnswerDetail(params.interviewId, params.questionId);
+    }
+  }, [params?.questionId, params?.interviewId]);
+
+  const fetchAnswerDetail = async (sessionId: string, questionId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getAnswerDetail(sessionId, questionId);
+      setData(response.answer);
+    } catch (err) {
+      console.error('Error fetching answer detail:', err);
+      setError('Không thể tải chi tiết câu trả lời');
+      Alert.alert('Lỗi', 'Không thể tải chi tiết câu trả lời. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <BackgroundContainer withOverlay={false}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4DE9B1" />
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            Đang tải chi tiết câu trả lời...
+          </Text>
+        </View>
+      </BackgroundContainer>
+    );
+  }
+
+  // Show error state
+  if (error || !data) {
+    return (
+      <BackgroundContainer withOverlay={false}>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>
+            {error || 'Không tìm thấy thông tin câu trả lời'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => params?.interviewId && params?.questionId && 
+              fetchAnswerDetail(params.interviewId, params.questionId)}
+          >
+            <Text style={styles.retryButtonText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      </BackgroundContainer>
+    );
+  }
   
   // Xử lý khi người dùng nhấn nút lưu
   const handleSave = () => {
@@ -136,10 +139,10 @@ export default function HistoryAnswerDetailScreen() {
           <Text style={styles.scoreLabel}>Điểm trung bình</Text>
 
           <View style={styles.scoreBreakdown}>
-            {/* <View style={styles.scoreBreakdownItem}>
+            <View style={styles.scoreBreakdownItem}>
               <Text style={styles.breakdownScore}>{data.overallScore.speaking.toFixed(1)}</Text>
               <Text style={styles.breakdownLabel}>Kỹ năng nói</Text>
-            </View> */}
+            </View>
             <View style={styles.scoreBreakdownItem}>
               <Text style={styles.breakdownScore}>{data.overallScore.content.toFixed(1)}</Text>
               <Text style={styles.breakdownLabel}>Nội dung</Text>
@@ -434,5 +437,37 @@ const styles = StyleSheet.create({
     color: '#00141A', // Using dark text color on light button background
     fontSize: 16,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#4DE9B1',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#00141A',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

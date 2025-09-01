@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext'; 
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
+import { getAnswerDetail } from '@/services/interviewService';
 import InfoPopup from '../../../components/common/InfoPopup';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
@@ -33,73 +34,54 @@ type ResultAnswerDetail = {
   interviewTitle: string;
 };
 
-// Mock data cho chi tiết câu trả lời
-const MOCK_ANSWERS: Record<string, ResultAnswerDetail> = {
-  'q1': {
-    id: 'a1',
-    questionId: 'q1',
-    question: 'Điểm mạnh và điểm yếu của bạn là gì?',
-    answer: 'Trong 5 năm kinh nghiệm làm việc trong lĩnh vực phát triển phần mềm, chuyên về React.js và Node.js. Trước đây tôi làm dev tại một công ty khởi nghiệp với quy mô 20 người và gần đây đã chuyển đến BigCorp, nơi tôi đã dẫn dắt một nhóm gồm 5 người trong việc phát triển một dự án cho một ngân hàng lớn. Hiệu suất dẫn đến tăng 45% tỷ lệ giữ chân khách hàng trong vòng 3 tháng đầu.',
-    score: 8.2,
-    overallScore: {
-      speaking: 9.0,
-      content: 8.5,
-      relevance: 8.0
-    },
-    feedback: 'Phản hồi từ AI',
-    strengths: [
-      'Câu trả lời được trình bày rõ ràng với đủ chi tiết',
-      'Thể hiện kinh nghiệm lãnh đạo',
-      'Đưng điểm số và số liệu chuyên môn'
-    ],
-    improvements: [
-      'Nên bao gồm các kỹ năng cụ thể mà những thành viên đội đã được quản lý',
-      'Nên đề cập những bài học rút ra từ dự án'
-    ],
-    interviewId: '1',
-    interviewTitle: 'Phỏng vấn IT - Senior Developer'
-  },
-  'q2': {
-    id: 'a2',
-    questionId: 'q2',
-    question: 'Điểm mạnh và điểm yếu của bạn là gì?',
-    answer: 'Điểm mạnh của tôi là khả năng giải quyết vấn đề và tư duy logic. Tôi có thể phân tích các vấn đề phức tạp thành các phần nhỏ hơn để giải quyết hiệu quả. Tôi cũng rất chú trọng vào chất lượng code và luôn cố gắng tuân thủ các nguyên tắc clean code. Về điểm yếu, đôi khi tôi quá chi tiết và dành nhiều thời gian cho việc hoàn thiện, điều này có thể ảnh hưởng đến tiến độ. Tôi đang cố gắng cải thiện bằng cách ưu tiên các tác vụ và quản lý thời gian tốt hơn.',
-    score: 7.5,
-    overallScore: {
-      speaking: 8.0,
-      content: 7.5,
-      relevance: 7.0
-    },
-    feedback: 'Phản hồi từ AI',
-    strengths: [
-      'Nhận diện được điểm mạnh phù hợp với vị trí công việc',
-      'Đã đề cập đến cách khắc phục điểm yếu',
-      'Trả lời trung thực, không né tránh'
-    ],
-    improvements: [
-      'Nên đưa ra ví dụ cụ thể cho cả điểm mạnh và điểm yếu',
-      'Có thể mở rộng thêm về cách điểm mạnh đã giúp ích trong công việc trước đây',
-      'Điểm yếu nên chọn vấn đề không liên quan trực tiếp đến yêu cầu chính của công việc'
-    ],
-    interviewId: '1',
-    interviewTitle: 'Phỏng vấn IT - Senior Developer'
-  },
-};
+// Removed mock; fetch from backend
 
 export default function ResultAnswerDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ questionId?: string, interviewId?: string }>();
   const { theme } = useTheme();
   const [showSavePopup, setShowSavePopup] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<{
+    question: string;
+    answer: string;
+    score: number;
+    overallScore: { speaking: number; content: number; relevance: number };
+    feedback: string;
+    strengths: string[];
+    improvements: string[];
+    interviewTitle: string;
+  } | null>(null);
 
-  // Lấy data theo questionId
-  const data = useMemo(() => {
-    const questionId = params?.questionId || 'q1';
-    const answer = MOCK_ANSWERS[questionId];
-    
-    // Fallback to q1 if the requested question doesn't exist
-    return answer || MOCK_ANSWERS['q1'];
-  }, [params?.questionId]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        if (!params?.interviewId || !params?.questionId) return;
+        const res = await getAnswerDetail(String(params.interviewId), String(params.questionId));
+        const ans = res?.answer;
+        const mapped = {
+          question: ans?.question || '',
+          answer: ans?.answer || '',
+          score: Number(ans?.score || 0),
+          overallScore: {
+            speaking: Number(ans?.overallScore?.speaking || 0),
+            content: Number(ans?.overallScore?.content || 0),
+            relevance: Number(ans?.overallScore?.relevance || 0),
+          },
+          feedback: ans?.feedback || '',
+          strengths: Array.isArray(ans?.strengths) ? ans.strengths : [],
+          improvements: Array.isArray(ans?.improvements) ? ans.improvements : [],
+          interviewTitle: 'Kết quả phỏng vấn',
+        };
+        setDetail(mapped);
+      } catch (e) {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [params?.interviewId, params?.questionId]);
   
   // Xử lý khi người dùng nhấn nút lưu
   const handleSave = () => {
@@ -122,7 +104,7 @@ export default function ResultAnswerDetailScreen() {
           numberOfLines={1}
           style={[styles.headerTitle, { color: theme.colors.white }]}
         >
-          {data.interviewTitle}
+          {detail?.interviewTitle || 'Kết quả phỏng vấn'}
         </Text>
 
         <TouchableOpacity style={styles.headerBtn}>
@@ -133,20 +115,20 @@ export default function ResultAnswerDetailScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Card điểm số */}
         <View style={styles.scoreCardContainer} >
-          <Text style={styles.bigScore}>{data.score.toFixed(1)}</Text>
+          <Text style={styles.bigScore}>{(detail?.score ?? 0).toFixed(1)}</Text>
           <Text style={styles.scoreLabel}>Điểm trung bình</Text>
 
           <View style={styles.scoreBreakdown}>
-            {/* <View style={styles.scoreBreakdownItem}>
-              <Text style={styles.breakdownScore}>{data.overallScore.speaking.toFixed(1)}</Text>
-              <Text style={styles.breakdownLabel}>Kỹ năng nói</Text>
-            </View> */}
             <View style={styles.scoreBreakdownItem}>
-              <Text style={styles.breakdownScore}>{data.overallScore.content.toFixed(1)}</Text>
+              <Text style={styles.breakdownScore}>{(detail?.overallScore.speaking ?? 0).toFixed(1)}</Text>
+              <Text style={styles.breakdownLabel}>Kỹ năng nói</Text>
+            </View>
+            <View style={styles.scoreBreakdownItem}>
+              <Text style={styles.breakdownScore}>{(detail?.overallScore.content ?? 0).toFixed(1)}</Text>
               <Text style={styles.breakdownLabel}>Nội dung</Text>
             </View>
             <View style={styles.scoreBreakdownItem}>
-              <Text style={styles.breakdownScore}>{data.overallScore.relevance.toFixed(1)}</Text>
+              <Text style={styles.breakdownScore}>{(detail?.overallScore.relevance ?? 0).toFixed(1)}</Text>
               <Text style={styles.breakdownLabel}>Sự liên quan</Text>
             </View>
           </View>
@@ -161,7 +143,7 @@ export default function ResultAnswerDetailScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.questionText}>
-            {data.question}
+            {detail?.question || ''}
           </Text>
         </View>
 
@@ -174,7 +156,7 @@ export default function ResultAnswerDetailScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.answerText}>
-            {data.answer}
+            {detail?.answer || ''}
           </Text>
         </View>
 
@@ -192,7 +174,7 @@ export default function ResultAnswerDetailScreen() {
           
           <View style={styles.strengthsContainer}>
             <Text style={styles.strengthsTitle}>Điểm mạnh</Text>
-            {data.strengths.map((item, index) => (
+            {(detail?.strengths || []).map((item, index) => (
               <View key={`strength-${index}`} style={styles.feedbackItem}>
                 <View style={styles.bulletPoint}>
                   <MaterialCommunityIcons 
@@ -208,7 +190,7 @@ export default function ResultAnswerDetailScreen() {
 
           <View style={styles.improvementsContainer}>
             <Text style={styles.improvementsTitle}>Những điểm cần cải thiện</Text>
-            {data.improvements.map((item, index) => (
+            {(detail?.improvements || []).map((item, index) => (
               <View key={`improvement-${index}`} style={styles.feedbackItem}>
                 <View style={styles.bulletPoint}>
                   <MaterialCommunityIcons 

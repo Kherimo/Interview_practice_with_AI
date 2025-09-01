@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View,
   Text, 
@@ -6,6 +6,8 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
@@ -13,6 +15,7 @@ import { useRouter } from 'expo-router';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import EmptyHistoryState from '../../../components/ui/history/EmptyHistoryState';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { getInterviewHistory } from '../../../services/interviewService';
 
 // Định nghĩa type cho lịch sử phỏng vấn
 type HistoryItem = {
@@ -22,6 +25,8 @@ type HistoryItem = {
   score: number;
   questions: number;
   duration: number;
+  field: string;
+  position: string;
 };
 
 // Thống kê tổng quan
@@ -31,28 +36,49 @@ type Stats = {
   currentWeekSessions: number;
 };
 
-// Mock data cho thống kê
-const statsData: Stats = {
-  totalSessions: 24,
-  averageScore: 7.8,
-  currentWeekSessions: 3
-};
-
-// Mock data cho lịch sử phỏng vấn
-const historyData: HistoryItem[] = [
-  { id: '1', date: 'Hôm nay • 14:30', title: 'Phỏng vấn IT - Senior Developer', score: 8.2, questions: 5, duration: 12 },
-  { id: '2', date: 'Hôm nay • 09:15', title: 'Phỏng vấn Marketing - Manager', score: 7.8, questions: 4, duration: 8 },
-  { id: '3', date: 'Hôm nay • 09:15', title: 'Phỏng vấn Marketing - Manager', score: 5.8, questions: 4, duration: 8 },
-];
-
 export default function HistoryScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Giả lập trạng thái không có dữ liệu
-  // Đặt thành true để xem danh sách lịch sử, false để xem trạng thái trống
-  const hasHistory = true;
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [statsData, setStatsData] = useState<Stats>({
+    totalSessions: 0,
+    averageScore: 0,
+    currentWeekSessions: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch history data
+  useEffect(() => {
+    fetchHistoryData();
+  }, []);
+
+  const fetchHistoryData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getInterviewHistory();
+      setHistoryData(response.history);
+      setStatsData(response.stats);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+      setError('Không thể tải lịch sử phỏng vấn');
+      Alert.alert('Lỗi', 'Không thể tải lịch sử phỏng vấn. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter history based on search query
+  const filteredHistory = historyData.filter(item =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.field.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.position.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Check if there's history data
+  const hasHistory = historyData.length > 0;
 
    const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
       <TouchableOpacity
@@ -111,7 +137,7 @@ export default function HistoryScreen() {
 
   // Hàm xử lý khi bắt đầu phỏng vấn từ trạng thái trống
   const handleStartPractice = () => {
-    router.push('/Interview');
+    router.push('/interview/interviewVoice');
   };
 
   // Hàm chọn màu dựa trên điểm số
@@ -169,12 +195,23 @@ export default function HistoryScreen() {
             </View>
           </View>
 
-          <FlatList
-            data={historyData}
-            renderItem={renderHistoryItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.listContent}
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4DE9B1" />
+              <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+                Đang tải lịch sử...
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredHistory}
+              renderItem={renderHistoryItem}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.listContent}
+              refreshing={loading}
+              onRefresh={fetchHistoryData}
+            />
+          )}
         </>
       ) : (
         <View style={styles.emptyStateContainer}>
@@ -298,5 +335,15 @@ const styles = StyleSheet.create({
   emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   }
 });

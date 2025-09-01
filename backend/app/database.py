@@ -1,3 +1,4 @@
+# database.py (Fixed to be compatible with frontend requirements)
 import os
 from sqlalchemy import (
     create_engine,
@@ -87,9 +88,6 @@ class InterviewSession(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    topic_id = Column(Integer, ForeignKey("topics.id", ondelete="SET NULL"))
-    role = Column(String(100))
-    position = Column(String(100))
     field = Column(String(100))
     specialization = Column(String(100))
     experience_level = Column(String(50))
@@ -100,13 +98,12 @@ class InterviewSession(Base):
         nullable=False,
         server_default="dang_dien_ra",
     )
-    mode = Column(Enum("chat", "voice", name="session_mode"), nullable=False)
-    difficulty_setting = Column(String(50), nullable=False)
+    mode = Column(Enum("chat", "voice", name="session_mode"), nullable=False, default="voice")
+    difficulty_setting = Column(String(50), nullable=False, default="medium")
     questions_asked = Column(Integer, server_default=text("0"))
-    overall_score = Column(Float)
     started_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, server_default=func.now())  # Added for frontend compatibility
     expires_at = Column(DateTime)
-    completed_at = Column(DateTime)
 
 
 class InterviewQuestion(Base):
@@ -133,6 +130,14 @@ class InterviewAnswer(Base):
     answer = Column(Text, nullable=False)
     feedback = Column(Text)
     score = Column(Float)
+    user_answer_audio_url = Column(String(255))
+    # Extended evaluation fields for detailed result view
+    transcript_text = Column(Text)
+    speaking_score = Column(Float)
+    content_score = Column(Float)
+    relevance_score = Column(Float)
+    strengths = Column(JSON)
+    improvements = Column(JSON)
     created_at = Column(DateTime, server_default=func.now())
 
 
@@ -220,6 +225,75 @@ def migrate_interview_sessions():
             add_col("time_limit", "INTEGER")
         if "question_limit" not in existing:
             add_col("question_limit", "INTEGER")
+        if "created_at" not in existing:
+            add_col("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        if "mode" not in existing:
+            add_col("mode", "VARCHAR(20) DEFAULT 'voice'")
+        if "difficulty_setting" not in existing:
+            add_col("difficulty_setting", "VARCHAR(50) DEFAULT 'medium'")
+        # Drop old columns if they exist
+        if "topic_id" in existing:
+            try:
+                conn.execute(text("ALTER TABLE interview_sessions DROP COLUMN topic_id"))
+            except Exception:
+                pass
+        if "role" in existing:
+            try:
+                conn.execute(text("ALTER TABLE interview_sessions DROP COLUMN role"))
+            except Exception:
+                pass
+        if "position" in existing:
+            try:
+                conn.execute(text("ALTER TABLE interview_sessions DROP COLUMN position"))
+            except Exception:
+                pass
+
+def migrate_interview_answers():
+    """Ensure new evaluation columns exist on interview_answers."""
+    inspector = inspect(engine)
+    if not inspector.has_table("interview_answers"):
+        return
+    existing = {col["name"] for col in inspector.get_columns("interview_answers")}
+    with engine.begin() as conn:
+        def add_col(name, coltype):
+            conn.execute(text(f"ALTER TABLE interview_answers ADD COLUMN {name} {coltype}"))
+
+        if "transcript_text" not in existing:
+            add_col("transcript_text", "TEXT")
+        if "speaking_score" not in existing:
+            add_col("speaking_score", "FLOAT")
+        if "content_score" not in existing:
+            add_col("content_score", "FLOAT")
+        if "relevance_score" not in existing:
+            add_col("relevance_score", "FLOAT")
+        if "strengths" not in existing:
+            add_col("strengths", "JSON")
+        if "improvements" not in existing:
+            add_col("improvements", "JSON")
+
+
+def migrate_remove_session_columns():
+    """Remove overall_score and completed_at columns from interview_sessions."""
+    inspector = inspect(engine)
+    if not inspector.has_table("interview_sessions"):
+        return
+    existing = {col["name"] for col in inspector.get_columns("interview_sessions")}
+    with engine.begin() as conn:
+        # Remove overall_score column if it exists
+        if "overall_score" in existing:
+            try:
+                conn.execute(text("ALTER TABLE interview_sessions DROP COLUMN overall_score"))
+                print("Removed overall_score column from interview_sessions")
+            except Exception as e:
+                print(f"Error removing overall_score column: {e}")
+        
+        # Remove completed_at column if it exists
+        if "completed_at" in existing:
+            try:
+                conn.execute(text("ALTER TABLE interview_sessions DROP COLUMN completed_at"))
+                print("Removed completed_at column from interview_sessions")
+            except Exception as e:
+                print(f"Error removing completed_at column: {e}")
 
 def get_session():
     return SessionLocal()

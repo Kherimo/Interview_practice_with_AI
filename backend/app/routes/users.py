@@ -26,9 +26,11 @@ def update_profile(current_user):
     data = request.get_json(force=True)
     session = get_session()
     try:
-        # Update name/full_name
-        if 'name' in data or 'full_name' in data:
-            current_user.full_name = data.get('name') or data.get('full_name')
+        # Update name/full_name - handle both name and full_name fields
+        if 'name' in data:
+            current_user.full_name = data['name']
+        elif 'full_name' in data:
+            current_user.full_name = data['full_name']
 
         # Update email with uniqueness check
         if 'email' in data and data['email'] != current_user.email:
@@ -62,6 +64,7 @@ def change_password(current_user):
         }
     """
     data = request.get_json(force=True)
+    # Handle both snake_case and camelCase keys
     current_password = data.get('current_password') or data.get('currentPassword')
     new_password = data.get('new_password') or data.get('newPassword')
     if not current_password or not new_password:
