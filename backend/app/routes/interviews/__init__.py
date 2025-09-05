@@ -16,3 +16,4 @@ interviews_bp.register_blueprint(history_bp)
 interviews_bp.register_blueprint(stats_bp)
 
 
+
