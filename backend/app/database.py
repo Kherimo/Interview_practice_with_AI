@@ -45,44 +45,6 @@ class User(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
-class UserSettings(Base):
-    __tablename__ = "user_settings"
-
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    notifications_on = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-    reminders_on = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-    practice_reminders = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-    new_features = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-    feedback_requests = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-    practice_results = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-    email_notifications = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-
-
-class Topic(Base):
-    __tablename__ = "topics"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
-    description = Column(Text)
-    image_url = Column(String(255))
-    question_count = Column(Integer, server_default=text("0"))
-
-
-class Question(Base):
-    __tablename__ = "questions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    topic_id = Column(Integer, ForeignKey("topics.id", ondelete="CASCADE"))
-    content = Column(Text, nullable=False)
-    difficulty = Column(String(50), nullable=False)
-    suggested_answer = Column(Text)
-    is_active = Column(Boolean, nullable=False, default=True, server_default=text('true'))
-
-
 class InterviewSession(Base):
     __tablename__ = "interview_sessions"
 
@@ -140,32 +102,6 @@ class InterviewAnswer(Base):
     improvements = Column(JSON)
     created_at = Column(DateTime, server_default=func.now())
 
-
-class SessionDetail(Base):
-    __tablename__ = "session_details"
-
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(
-        Integer, ForeignKey("interview_sessions.id", ondelete="CASCADE"), nullable=False
-    )
-    question_id = Column(Integer, ForeignKey("questions.id", ondelete="SET NULL"))
-    user_answer_text = Column(Text)
-    user_answer_audio_url = Column(String(255))
-    ai_feedback = Column(JSON)
-    score = Column(Float)
-    answered_at = Column(DateTime, server_default=func.now())
-
-
-class SavedQuestion(Base):
-    __tablename__ = "saved_questions"
-
-    user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
-    )
-    question_id = Column(
-        Integer, ForeignKey("questions.id", ondelete="CASCADE"), primary_key=True
-    )
-    saved_at = Column(DateTime, server_default=func.now())
 
 
 class PasswordReset(Base):

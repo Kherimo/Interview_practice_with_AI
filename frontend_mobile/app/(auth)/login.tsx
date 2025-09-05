@@ -37,7 +37,14 @@ const LoginScreen = () => {
       return;
     }
     const result = await signIn(email, password);
-    if (!result.ok) {
+    if (result.ok) {
+      // Nếu chưa có nghề nghiệp/kinh nghiệm thì yêu cầu thiết lập
+      if (!result.user.profession || !result.user.experienceLevel) {
+        router.replace('/setUpProfile');
+      } else {
+        router.replace('/(tabs)/home');
+      }
+    } else {
       setWarningTitle('Lỗi');
       setWarningMessage(result.error || 'Email hoặc mật khẩu không đúng');
       setPopupType('error');

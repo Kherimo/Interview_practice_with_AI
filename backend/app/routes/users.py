@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.database import get_session, UserSettings, User
+from app.database import get_session, User
 from app.utils import token_required
 
 
@@ -105,32 +105,32 @@ def get_settings(current_user):
         session.close()
 
 
-@users_bp.route('/settings', methods=['PUT'])
-@token_required
-def update_settings(current_user):
-    """Update the authenticated user's settings."""
-    data = request.get_json(force=True)
-    session = get_session()
-    try:
-        settings = session.get(UserSettings, current_user.id)
-        if not settings:
-            settings = UserSettings(user_id=current_user.id)
-            session.add(settings)
-        if 'notifications_on' in data:
-            settings.notifications_on = bool(data['notifications_on'])
-        if 'reminders_on' in data:
-            settings.reminders_on = bool(data['reminders_on'])
-        if 'practice_reminders' in data:
-            settings.practice_reminders = bool(data['practice_reminders'])
-        if 'new_features' in data:
-            settings.new_features = bool(data['new_features'])
-        if 'feedback_requests' in data:
-            settings.feedback_requests = bool(data['feedback_requests'])
-        if 'practice_results' in data:
-            settings.practice_results = bool(data['practice_results'])
-        if 'email_notifications' in data:
-            settings.email_notifications = bool(data['email_notifications'])
-        session.commit()
-        return jsonify({'message': 'Settings updated'}), 200
-    finally:
-        session.close()
+# @users_bp.route('/settings', methods=['PUT'])
+# @token_required
+# def update_settings(current_user):
+#     """Update the authenticated user's settings."""
+#     data = request.get_json(force=True)
+#     session = get_session()
+#     try:
+#         settings = session.get(UserSettings, current_user.id)
+#         if not settings:
+#             settings = UserSettings(user_id=current_user.id)
+#             session.add(settings)
+#         if 'notifications_on' in data:
+#             settings.notifications_on = bool(data['notifications_on'])
+#         if 'reminders_on' in data:
+#             settings.reminders_on = bool(data['reminders_on'])
+#         if 'practice_reminders' in data:
+#             settings.practice_reminders = bool(data['practice_reminders'])
+#         if 'new_features' in data:
+#             settings.new_features = bool(data['new_features'])
+#         if 'feedback_requests' in data:
+#             settings.feedback_requests = bool(data['feedback_requests'])
+#         if 'practice_results' in data:
+#             settings.practice_results = bool(data['practice_results'])
+#         if 'email_notifications' in data:
+#             settings.email_notifications = bool(data['email_notifications'])
+#         session.commit()
+#         return jsonify({'message': 'Settings updated'}), 200
+#     finally:
+#         session.close()
