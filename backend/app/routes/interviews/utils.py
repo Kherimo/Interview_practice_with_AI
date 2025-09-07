@@ -130,7 +130,15 @@ def evaluate_audio_answer(question_text: str, audio_url: str) -> dict:
     # Evaluate transcript with Gemini
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY not configured")
+        logger.warning("GEMINI_API_KEY not configured; returning fallback with transcript only")
+        return {
+            "transcript_text": transcript_text,
+            "score": 0,
+            "breakdown": {"speaking": 0, "content": 0, "relevance": 0},
+            "feedback": "",
+            "strengths": [],
+            "improvements": [],
+        }
 
     endpoint = (
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
@@ -167,6 +175,82 @@ Lưu ý: Chỉ trả về JSON thuần túy, không bọc trong markdown code bl
 
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     logger.info("📤 Sending evaluation request to Gemini")
+    try:
+        resp = requests.post(endpoint, params={"key": api_key}, json=payload, timeout=60)
+        if not resp.ok:
+            logger.error(f"❌ Gemini API error: {resp.status_code} - {resp.text}")
+            raise RuntimeError(f"Gemini API returned {resp.status_code}: {resp.text}")
+
+        data = resp.json()
+        if "candidates" not in data or not data["candidates"]:
+            logger.error(f"❌ No candidates in Gemini response: {data}")
+            raise RuntimeError("No candidates in Gemini response")
+
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        cleaned_text = text.strip()
+        if cleaned_text.startswith("```json"):
+            cleaned_text = cleaned_text.replace("```json", "").replace("```", "").strip()
+        elif cleaned_text.startswith("```"):
+            cleaned_text = cleaned_text.replace("```", "").strip()
+
+        logger.info(f"🧹 Cleaned text for JSON parsing: {cleaned_text[:200]}...")
+        parsed = json.loads(cleaned_text)
+        logger.info(
+            f"✅ Gemini evaluation JSON: {json.dumps(parsed, indent=2, ensure_ascii=False)}"
+        )
+        return parsed
+    except Exception as e:
+        logger.error(f"❌ Gemini evaluation failed, using fallback transcript: {e}")
+        return {
+            "transcript_text": transcript_text,
+            "score": 0,
+            "breakdown": {"speaking": 0, "content": 0, "relevance": 0},
+            "feedback": "",
+            "strengths": [],
+            "improvements": [],
+        }
+
+def evaluate_text_answer(question_text: str, transcript_text: str) -> dict:
+    """Evaluate a text answer directly using Gemini API."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY not configured")
+
+    endpoint = (
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+    )
+
+    prompt = f"""
+Bạn là một chuyên gia phỏng vấn. Đánh giá câu trả lời của ứng viên dựa trên câu hỏi.
+
+Câu hỏi: {question_text}
+Câu trả lời: {transcript_text}
+
+Yêu cầu:
+- Chấm điểm tổng thể theo thang 0-10.
+- Chấm chi tiết theo 3 tiêu chí (0-10): speaking, content, relevance.
+- Viết phần feedback ngắn gọn, súc tích.
+- Liệt kê strengths (3-5 điểm mạnh) và improvements (3-5 điểm cần cải thiện).
+
+BẮT BUỘC TRẢ VỀ JSON HỢP LỆ, ĐÚNG CHUẨN, KHÔNG THÊM GIẢI THÍCH, VỚI CẤU TRÚC:
+{{
+  "transcript": "{transcript_text}",
+  "score": 8.5,
+  "breakdown": {{
+    "speaking": 8.0,
+    "content": 9.0,
+    "relevance": 8.5
+  }},
+  "feedback": "feedback ngắn gọn về câu trả lời",
+  "strengths": ["điểm mạnh 1", "điểm mạnh 2", "điểm mạnh 3"],
+  "improvements": ["điểm cần cải thiện 1", "điểm cần cải thiện 2", "điểm cần cải thiện 3"]
+}}
+
+Lưu ý: Chỉ trả về JSON thuần túy, không bọc trong markdown code blocks, không thêm text nào khác.
+"""
+
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    logger.info("📤 Sending evaluation request to Gemini (text)")
     resp = requests.post(endpoint, params={"key": api_key}, json=payload, timeout=60)
 
     if not resp.ok:

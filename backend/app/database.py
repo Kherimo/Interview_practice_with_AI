@@ -15,6 +15,7 @@ from sqlalchemy import (
     Index,
     text,
     inspect,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -89,7 +90,6 @@ class InterviewAnswer(Base):
     question_id = Column(
         Integer, ForeignKey("interview_questions.id", ondelete="CASCADE"), nullable=False
     )
-    answer = Column(Text, nullable=False)
     feedback = Column(Text)
     score = Column(Float)
     user_answer_audio_url = Column(String(255))
@@ -102,6 +102,21 @@ class InterviewAnswer(Base):
     improvements = Column(JSON)
     created_at = Column(DateTime, server_default=func.now())
 
+
+
+class QuestionNote(Base):
+    __tablename__ = "question_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    question_id = Column(
+        Integer, ForeignKey("interview_questions.id", ondelete="CASCADE"), nullable=False
+    )
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "question_id", name="uq_question_note"),
+    )
 
 
 class PasswordReset(Base):
@@ -206,6 +221,12 @@ def migrate_interview_answers():
             add_col("strengths", "JSON")
         if "improvements" not in existing:
             add_col("improvements", "JSON")
+        # Drop legacy 'answer' column if exists to avoid duplication with transcript_text
+        if "answer" in existing:
+            try:
+                conn.execute(text("ALTER TABLE interview_answers DROP COLUMN answer"))
+            except Exception:
+                pass
 
 
 def migrate_remove_session_columns():

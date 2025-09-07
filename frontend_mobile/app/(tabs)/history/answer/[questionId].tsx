@@ -15,7 +15,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import BackgroundContainer from '../../../../components/common/BackgroundContainer';
 import InfoPopup from '../../../../components/common/InfoPopup';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { getAnswerDetail } from '../../../../services/interviewService';
+import { getAnswerDetail, saveQuestion, removeSavedQuestion, checkQuestionSaved } from '../../../../services/interviewService';
 
 // Định nghĩa type cho chi tiết câu trả lời
 type AnswerDetail = {
@@ -47,6 +47,8 @@ export default function HistoryAnswerDetailScreen() {
   const [data, setData] = useState<AnswerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [popupMsg, setPopupMsg] = useState('');
 
   // Fetch answer detail data
   useEffect(() => {
@@ -61,6 +63,8 @@ export default function HistoryAnswerDetailScreen() {
       setError(null);
       const response = await getAnswerDetail(sessionId, questionId);
       setData(response.answer);
+      const savedRes = await checkQuestionSaved(questionId);
+      setIsSaved(Boolean(savedRes?.saved));
     } catch (err) {
       console.error('Error fetching answer detail:', err);
       setError('Không thể tải chi tiết câu trả lời');
@@ -105,10 +109,22 @@ export default function HistoryAnswerDetailScreen() {
   }
   
   // Xử lý khi người dùng nhấn nút lưu
-  const handleSave = () => {
-    // Ở đây sẽ là code để lưu trữ câu trả lời
-    // Sau khi lưu thành công, hiển thị popup
-    setShowSavePopup(true);
+  const handleSave = async () => {
+    try {
+      if (!params?.questionId) return;
+      if (isSaved) {
+        await removeSavedQuestion(String(params.questionId));
+        setIsSaved(false);
+        setPopupMsg('Đã xóa câu hỏi khỏi danh sách lưu');
+      } else {
+        await saveQuestion(String(params.questionId));
+        setIsSaved(true);
+        setPopupMsg('Câu hỏi đã được lưu');
+      }
+      setShowSavePopup(true);
+    } catch (e) {
+      // ignore
+    }
   };
 
   return (
@@ -233,16 +249,16 @@ export default function HistoryAnswerDetailScreen() {
           activeOpacity={0.8}
           onPress={handleSave}
         >
-          <MaterialCommunityIcons name="content-save-outline" size={22} color="#00141A" style={{ marginRight: 8 }} />
-          <Text style={styles.saveButtonText}>Lưu</Text>
+          <MaterialCommunityIcons name={isSaved ? 'delete-outline' : 'content-save-outline'} size={22} color="#00141A" style={{ marginRight: 8 }} />
+          <Text style={styles.saveButtonText}>{isSaved ? 'Xóa' : 'Lưu'}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Popup thông báo lưu thành công */}
       <InfoPopup
         visible={showSavePopup}
-        title="Lưu thành công!"
-        message="Câu trả lời này đã được lưu vào danh sách câu trả lời đã lưu của bạn."
+        title="Thông báo"
+        message={popupMsg}
         buttonText="Đóng"
         onClose={() => setShowSavePopup(false)}
         type="success"
