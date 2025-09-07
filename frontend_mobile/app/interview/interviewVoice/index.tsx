@@ -7,9 +7,12 @@ import {
   Animated,
   Image,
   ScrollView,
+  BackHandler,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
+// eslint-disable-next-line import/no-unresolved
+import * as Speech from 'expo-speech';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getNextQuestion, submitAnswer, finishInterview } from '@/services/interviewService';
@@ -44,11 +47,13 @@ export default function VoiceInterviewScreen() {
   const [phase, setPhase] = useState<Phase>('idle');
   const [timer, setTimer] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | number | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | number | null>(null);
   const [questionText, setQuestionText] = useState('');
   const [transcript, setTranscript] = useState('');
   const [showEndPopup, setShowEndPopup] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
   const [questionId, setQuestionId] = useState<number | null>(null);
+  const [isFinished, setIsFinished] = useState(false);
 
   // audio recording/playback state
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -59,7 +64,14 @@ export default function VoiceInterviewScreen() {
   const bars = new Array(16).fill(0);
   const anims = useRef(bars.map(() => new Animated.Value(4))).current;
 
-// format mm:ss
+  // Block hardware back during and after interview
+  useEffect(() => {
+    const onBack = () => true;
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, []);
+
+  // format mm:ss
   const mmssinterview = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -70,7 +82,6 @@ export default function VoiceInterviewScreen() {
       setTimer(t => {
         if (t <= 1) {
           clearInterval(intervalRef.current!);
-          // TODO: kết thúc phỏng vấn ở đây
           return 0;
         }
         return t - 1;
@@ -84,19 +95,34 @@ export default function VoiceInterviewScreen() {
   useEffect(() => {
   if (interviewCountdown <= 0) return;
 
-  const interval = setInterval(() => {
+  countdownRef.current = setInterval(() => {
     setInterviewCountdown(prev => {
       if (prev <= 1) {
-        clearInterval(interval);
+        if (countdownRef.current) clearInterval(countdownRef.current);
         setShowEndPopup(true); // hết giờ => popup kết thúc
         return 0;
       }
       return prev - 1;
     });
-  }, 1000);
+  }, 1000) as unknown as NodeJS.Timeout;
 
-  return () => clearInterval(interval);
+  return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
 }, []);
+
+  const finishAndShowPopup = async () => {
+    try {
+      if (sessionId && !isFinished) {
+        await finishInterview(String(sessionId));
+        setIsFinished(true);
+      }
+    } catch {}
+    // Stop timers and TTS immediately to avoid delayed popups later
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setInterviewCountdown(0);
+    Speech.stop();
+    setShowEndPopup(true);
+  };
 
   // Fetch first question
   useEffect(() => {
@@ -114,6 +140,17 @@ export default function VoiceInterviewScreen() {
     };
     fetchQuestion();
   }, [sessionId]);
+
+  // Speak question in Vietnamese whenever it changes
+  useEffect(() => {
+    if (questionText) {
+      Speech.stop();
+      Speech.speak(questionText, { language: 'vi-VN' });
+    }
+    return () => {
+      Speech.stop();
+    };
+  }, [questionText]);
 
   // timer
   useEffect(() => {
@@ -203,6 +240,13 @@ export default function VoiceInterviewScreen() {
     setPhase('idle');
   };
 
+  const onSpeakQuestion = () => {
+    if (questionText) {
+      Speech.stop();
+      Speech.speak(questionText, { language: 'vi-VN' });
+    }
+  };
+
   const onSubmit = async () => {
     try {
       if (!sessionId || !questionId) return;
@@ -213,9 +257,7 @@ export default function VoiceInterviewScreen() {
         audioUri: recordingUri || undefined,
       });
       if (questionIndex >= questionTotal) {
-        // finish session
-        const result = await finishInterview(String(sessionId));
-        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+        await finishAndShowPopup();
         return;
       }
       const res = await getNextQuestion(String(sessionId));
@@ -227,19 +269,23 @@ export default function VoiceInterviewScreen() {
       setRecordingUri(null);
       setPhase('idle');
     } catch (e) {
-      // Suppress errors to avoid noisy UI; navigate to result if at end
+      // Suppress errors to avoid noisy UI; show popup if at end
       if (questionIndex >= questionTotal) {
-        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+        await finishAndShowPopup();
       }
     }
   };
 
   const onSkip = async () => {
     try {
-      if (!sessionId) return;
+      if (!sessionId || !questionId) return;
+      await submitAnswer({
+        sessionId: String(sessionId),
+        questionId: String(questionId),
+        answerText: 'Bỏ qua câu hỏi không trả lời',
+      });
       if (questionIndex >= questionTotal) {
-        const result = await finishInterview(String(sessionId));
-        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+        await finishAndShowPopup();
         return;
       }
       const res = await getNextQuestion(String(sessionId));
@@ -251,9 +297,9 @@ export default function VoiceInterviewScreen() {
       setRecordingUri(null);
       setPhase('idle');
     } catch (e) {
-      // Suppress errors; if already at end, go to results
+      // Suppress errors; if already at end, show popup
       if (questionIndex >= questionTotal) {
-        router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+        await finishAndShowPopup();
       }
     }
   };
@@ -263,7 +309,7 @@ export default function VoiceInterviewScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.hbtn} onPress={() => setShowCancelPopup(true)}>
+        <TouchableOpacity style={styles.hbtn} onPress={() => { /* blocked */ }}>
           <IconSymbol name="chevron.left" size={30} color={theme.colors.white} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center', flex: 1 }}>
@@ -297,7 +343,7 @@ export default function VoiceInterviewScreen() {
                 <View style={styles.bubbleHeader}>
                   <Text style={styles.bubbleTag}>Behavioral Question</Text>
                   <View style={styles.bubbleActions}>
-                    <TouchableOpacity style={styles.iconRound}>
+                    <TouchableOpacity style={styles.iconRound} onPress={onSpeakQuestion}>
                       <MaterialCommunityIcons name="volume-high" size={16} color="#00141A" />
                     </TouchableOpacity>
                     {/* <TouchableOpacity><Text style={styles.replayText}>Replay</Text></TouchableOpacity> */}
@@ -405,9 +451,21 @@ export default function VoiceInterviewScreen() {
           title="Hoàn thành phỏng vấn"
           message="Bạn đã hoàn thành phiên phỏng vấn. Bây giờ bạn có thể xem kết quả phân tích và nhận phản hồi chi tiết."
           buttonText="Xem kết quả"
-          onClose={() => {
+          onClose={async () => {
             setShowEndPopup(false);
-            router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId) } });
+            try {
+              if (sessionId && !isFinished) {
+                await finishInterview(String(sessionId));
+                setIsFinished(true);
+              }
+            } catch (e) {
+              // ignore
+            }
+            if (sessionId) {
+              router.push({ pathname: '/interview/interviewResult', params: { id: String(sessionId), completed: '1' } });
+            } else {
+              router.push('/interview/interviewResult');
+            }
           }}
           type="success"
         />
@@ -439,8 +497,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(217, 217, 217, 0.15)',
-    // borderBottomLeftRadius: 12,
-    // borderBottomRightRadius: 12,
   },
   hbtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 16, fontWeight: '800' },
@@ -464,14 +520,14 @@ const styles = StyleSheet.create({
   borderBottomColor:"transparent",
   borderRightColor:"transparent",
 },
-bubbleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-bubbleTag: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '700' },
-bubbleActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-iconRound: { width:28, height:28, borderRadius:14, backgroundColor:'#7CF3FF', alignItems:'center', justifyContent:'center' },
-bubbleText: { color:'#FFFFFF', marginTop:8, lineHeight:20 },
-tinyWave: { flexDirection:'row', gap:3, alignItems:'flex-end', height:12 },
-tinyBar: { width:3, height:8, borderRadius:2, backgroundColor:'#7CF3FF' },
-avatar: { width:80, height:120, borderRadius:26, marginTop:6 },
+ bubbleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+ bubbleTag: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '700' },
+ bubbleActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+ iconRound: { width:28, height:28, borderRadius:14, backgroundColor:'#7CF3FF', alignItems:'center', justifyContent:'center' },
+ bubbleText: { color:'#FFFFFF', marginTop:8, lineHeight:20 },
+ tinyWave: { flexDirection:'row', gap:3, alignItems:'flex-end', height:12 },
+ tinyBar: { width:3, height:8, borderRadius:2, backgroundColor:'#7CF3FF' },
+ avatar: { width:80, height:120, borderRadius:26, marginTop:6 },
 
 
   micBtn: {

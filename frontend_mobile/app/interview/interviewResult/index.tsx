@@ -6,12 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
+  BackHandler,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext'; 
 import BackgroundContainer from '../../../components/common/BackgroundContainer'; 
-import { getQuestionsAnswers } from '@/services/interviewService';
+import { getInterviewDetail } from '@/services/interviewService';
+import InfoPopup from '@/components/common/InfoPopup';
 
 type QAItem = {
   id: string;
@@ -50,42 +52,52 @@ const MOCK_DETAIL: Record<string, ResultData> = {
 
 export default function ResultScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; completed?: string }>();
   const { theme } = useTheme();
   const [qa, setQa] = useState<QAItem[]>([]);
   const [title, setTitle] = useState<string>('Kết quả phỏng vấn');
   const [domain, setDomain] = useState<string>('');
   const [questionsCount, setQuestionsCount] = useState<number>(0);
   const [avgScore, setAvgScore] = useState<number>(0);
+  const [durationMinutes, setDurationMinutes] = useState<number>(0);
+  const [showCompletedPopup, setShowCompletedPopup] = useState<boolean>(false);
+
+  // Block back on result
+  useEffect(() => {
+    const onBack = () => true;
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
       try {
         if (!params?.id) return;
-        const res = await getQuestionsAnswers(String(params.id));
-        const items = (res?.questions_answers || []) as any[];
-        const mapped: QAItem[] = items.map((it: any) => ({
-          id: String(it.question_id),
-          question: it.question,
-          score: typeof it.score === 'number' ? it.score : 0,
-        }));
-        setQa(mapped);
-        setQuestionsCount(mapped.length);
-        // Basic derived values (domain/title require another API; placeholder)
-        setTitle('Kết quả phỏng vấn');
-        setDomain('');
-        if (mapped.length) {
-          const sum = mapped.reduce((s, x) => s + (x.score || 0), 0);
-          setAvgScore(Number((sum / mapped.length).toFixed(1)));
-        } else {
-          setAvgScore(0);
+        const res = await getInterviewDetail(String(params.id));
+        const detail = res?.detail;
+        if (detail) {
+          setTitle(detail.title || 'Kết quả phỏng vấn');
+          setDomain(detail.domain || detail.field || '');
+          setQuestionsCount(detail.questions || 0);
+          setAvgScore(typeof detail.averageScore === 'number' ? detail.averageScore : 0);
+          setDurationMinutes(typeof detail.duration === 'number' ? detail.duration : 0);
+          const mapped: QAItem[] = (detail.qa || []).map((it: any) => ({
+            id: String(it.id),
+            question: it.question,
+            score: typeof it.score === 'number' ? it.score : 0,
+          }));
+          setQa(mapped);
+        }
+        // If navigated after completion, show popup immediately
+        if (params?.completed === '1') {
+          setShowCompletedPopup(true);
         }
       } catch (e) {
         // ignore errors on result view
       }
     };
     load();
-  }, [params?.id]);
+  }, [params?.id, params?.completed]);
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return '#2CE59A';      // xanh lá
@@ -157,7 +169,7 @@ export default function ResultScreen() {
                     <Text style={styles.topStatLabel}>Câu hỏi</Text>
                 </View>
                 <View style={styles.topStat}>
-                    <Text style={styles.topStatValue}>{0}</Text>
+                    <Text style={styles.topStatValue}>{durationMinutes}</Text>
                     <Text style={styles.topStatLabel}>Phút</Text>
                 </View>
                 <View style={styles.topStat}>
@@ -196,6 +208,16 @@ export default function ResultScreen() {
           <Text style={styles.primaryBtnText}>Tiếp tục luyện tập</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Completion popup when arriving from an interview */}
+      <InfoPopup
+        visible={showCompletedPopup}
+        title="Hoàn thành phỏng vấn"
+        message="Bạn đã hoàn thành phiên phỏng vấn. Bây giờ bạn có thể xem kết quả phân tích và nhận phản hồi chi tiết."
+        buttonText="Đã hiểu"
+        onClose={() => setShowCompletedPopup(false)}
+        type="success"
+      />
     </BackgroundContainer>
   );
 }

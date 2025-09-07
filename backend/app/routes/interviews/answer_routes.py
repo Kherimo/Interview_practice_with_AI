@@ -14,7 +14,7 @@ except Exception as e:
 
 from app.database import get_session, InterviewSession, InterviewQuestion, InterviewAnswer
 from app.utils import token_required
-from .utils import evaluate_audio_answer
+from .utils import evaluate_audio_answer, evaluate_text_answer
 
 logger = logging.getLogger(__name__)
 answer_bp = Blueprint('answer', __name__)
@@ -58,27 +58,35 @@ def submit_answer(current_user, session_id):
         data = request.form if request.form else {}
         question_id = int(data.get('question_id')) if data.get('question_id') else None
         audio_file = request.files.get('audio')
+        text_answer = data.get('text_answer')
 
-        logger.info(f"📋 Request data: question_id={question_id}, audio_file={'present' if audio_file else 'missing'}")
+        logger.info(
+            f"📋 Request data: question_id={question_id}, audio_file={'present' if audio_file else 'missing'}, text_answer={'present' if text_answer else 'missing'}"
+        )
 
         if not question_id:
-            logger.error(f"❌ Missing question_id in request")
+            logger.error("❌ Missing question_id in request")
             return jsonify({'error': 'Thiếu ID câu hỏi'}), 400
-        if not audio_file:
-            logger.error(f"❌ Missing audio file in request")
-            return jsonify({'error': 'Thiếu file audio'}), 400
+        if not audio_file and not text_answer:
+            logger.error("❌ Missing audio file and text answer in request")
+            return jsonify({'error': 'Thiếu dữ liệu câu trả lời'}), 400
 
         # Validate question
         question = db.get(InterviewQuestion, question_id)
         if not question or question.session_id != session_id:
             logger.error(f"❌ Invalid question {question_id} for session {session_id}")
             return jsonify({'error': 'Câu hỏi không hợp lệ'}), 404
-        
+
         logger.info(f"✅ Question validation passed: {question_id}")
 
-        # Handle audio file upload (Cloudinary)
         audio_url = None
-        if cloudinary and Cloud_NAME:
+        eval_json = {}
+        question_text = question.content if question else ''
+
+        if audio_file:
+            if not cloudinary or not Cloud_NAME:
+                logger.warning("Cloudinary not configured")
+                return jsonify({'error': 'Cloudinary chưa được cấu hình'}), 500
             try:
                 if not audio_file.filename:
                     logger.warning("Audio file has no filename")
@@ -98,7 +106,7 @@ def submit_answer(current_user, session_id):
 
                     upload_result = cloudinary.uploader.upload(
                         audio_file,
-                        resource_type="video",  # Cloudinary treats audio under video for many formats
+                        resource_type="video",
                         folder=Cloud_FOLDER,
                         public_id=public_id,
                         overwrite=True,
@@ -110,33 +118,31 @@ def submit_answer(current_user, session_id):
                         return jsonify({'error': 'Upload audio thất bại'}), 500
                     logger.info(f"✅ Audio uploaded to Cloudinary: {audio_url}")
 
+                logger.info(f"🎯 Starting evaluation for question ID: {question_id}")
+                eval_json = evaluate_audio_answer(question_text, audio_url)
+                logger.info("✅ Gemini evaluation completed successfully")
             except Exception as e:
-                logger.error(f"❌ Error uploading audio to Cloudinary: {e}")
-                return jsonify({'error': 'Lỗi upload audio'}), 500
+                logger.error(f"❌ Error handling audio submission: {e}")
+                return jsonify({'error': 'Không thể xử lý file audio'}), 500
         else:
-            logger.warning("Cloudinary not configured")
-            return jsonify({'error': 'Cloudinary chưa được cấu hình'}), 500
+            # Text answer path (e.g., skipped question)
+            try:
+                logger.info(f"🎯 Evaluating text answer for question ID: {question_id}")
+                eval_json = evaluate_text_answer(question_text, text_answer)
+                logger.info("✅ Text evaluation completed successfully")
+            except Exception as e:
+                logger.error(f"❌ Gemini evaluation failed: {e}")
+                eval_json = {
+                    'transcript': text_answer or '',
+                    'score': 0,
+                    'breakdown': {'speaking': 0, 'content': 0, 'relevance': 0},
+                    'feedback': '',
+                    'strengths': [],
+                    'improvements': []
+                }
+                logger.warning(f"⚠️ Using fallback evaluation data: {eval_json}")
 
-        # Evaluate with Gemini using audio URL and question text
-        question_text = question.content if question else ''
-        eval_json = {}
-        try:
-            logger.info(f"🎯 Starting evaluation for question ID: {question_id}")
-            logger.info(f"📝 Question text: {question_text}")
-            eval_json = evaluate_audio_answer(question_text, audio_url)
-            logger.info(f"✅ Gemini evaluation completed successfully")
-        except Exception as e:
-            logger.error(f"❌ Gemini evaluation failed: {e}")
-            # If evaluation fails, continue storing audio only
-            eval_json = {
-                'transcript': '', 'score': 0,
-                'breakdown': { 'speaking': 0, 'content': 0, 'relevance': 0 },
-                'feedback': '', 'strengths': [], 'improvements': []
-            }
-            logger.warning(f"⚠️ Using fallback evaluation data: {eval_json}")
-
-        # Save detailed answer
-        logger.info(f"💾 Saving evaluation results to database...")
+        logger.info("💾 Saving evaluation results to database...")
         
         # Extract and log scores
         overall_score = float(eval_json.get('score') or 0)
@@ -153,7 +159,6 @@ def submit_answer(current_user, session_id):
         answer = InterviewAnswer(
             session_id=session_id,
             question_id=question_id,
-            answer=eval_json.get('transcript') or '',
             feedback=eval_json.get('feedback') or None,
             score=overall_score,
             user_answer_audio_url=audio_url,
@@ -209,7 +214,7 @@ def get_questions_answers(current_user, session_id):
             result.append({
                 'question_id': q.id,
                 'question': q.content,
-                'answer': a.answer if a else None,
+                'answer': a.transcript_text if a else None,
                 'feedback': a.feedback if a else None,
                 'score': a.score if a else None,
                 'audio_url': a.user_answer_audio_url if a else None,
@@ -225,7 +230,6 @@ def get_questions_answers(current_user, session_id):
         return jsonify({'error': 'Không thể lấy danh sách câu hỏi/câu trả lời'}), 500
     finally:
         db.close()
-
 
 
 

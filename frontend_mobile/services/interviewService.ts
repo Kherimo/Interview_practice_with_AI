@@ -70,7 +70,9 @@ export async function submitAnswer(params: {
   const token = await AsyncStorage.getItem('@preptalk_token');
   const form = new FormData();
   form.append('question_id', String(params.questionId));
-  form.append('answer', params.answerText || 'Voice answer');
+  if (params.answerText) {
+    form.append('text_answer', params.answerText);
+  }
   if (params.audioUri) {
     const filename = params.audioUri.split('/').pop() || `answer_${params.sessionId}_${params.questionId}.m4a`;
     const file: any = {
@@ -102,9 +104,9 @@ export async function finishInterview(sessionId: string | number) {
   return handleResponse(res);
 }
 
-export async function getQuestionsAnswers(sessionId: string | number) {
+export async function getAnswerDetails(sessionId: string | number, questionId: string | number) {
   const token = await AsyncStorage.getItem('@preptalk_token');
-  const res = await fetch(`${API_URL}/interviews/${sessionId}/questions-answers`, {
+  const res = await fetch(`${API_URL}/interviews/${sessionId}/answers/${questionId}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -114,13 +116,49 @@ export async function getQuestionsAnswers(sessionId: string | number) {
   return handleResponse(res);
 }
 
-export async function getAnswerDetails(sessionId: string | number, questionId: string | number) {
+export async function saveQuestion(questionId: string | number) {
   const token = await AsyncStorage.getItem('@preptalk_token');
-  const res = await fetch(`${API_URL}/interviews/${sessionId}/answers/${questionId}`, {
+  const res = await fetch(`${API_URL}/interviews/questions/${questionId}/note`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  return handleResponse(res);
+}
+
+export async function removeSavedQuestion(questionId: string | number) {
+  const token = await AsyncStorage.getItem('@preptalk_token');
+  const res = await fetch(`${API_URL}/interviews/questions/${questionId}/note`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  return handleResponse(res);
+}
+
+export async function checkQuestionSaved(questionId: string | number) {
+  const token = await AsyncStorage.getItem('@preptalk_token');
+  const res = await fetch(`${API_URL}/interviews/questions/${questionId}/note`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  return handleResponse(res);
+}
+
+export async function getSavedQuestions() {
+  const token = await AsyncStorage.getItem('@preptalk_token');
+  const res = await fetch(`${API_URL}/interviews/questions/notes`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   return handleResponse(res);

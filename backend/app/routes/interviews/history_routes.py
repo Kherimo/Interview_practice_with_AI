@@ -196,7 +196,7 @@ def get_answer_detail(current_user, session_id, question_id):
             'id': str(answer.id),
             'questionId': str(question_id),
             'question': question.content,
-            'answer': answer.transcript_text or answer.answer or '',
+            'answer': answer.transcript_text or '',
             'score': round(float(answer.score or 0), 1),
             'overallScore': {
                 'speaking': round(float(answer.speaking_score or 0), 1),
