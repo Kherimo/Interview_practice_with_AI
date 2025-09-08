@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,30 +9,13 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useTheme } from '../../../context/ThemeContext'; 
+import { useTheme } from '../../../context/ThemeContext';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import { getAnswerDetail, saveQuestion, removeSavedQuestion, checkQuestionSaved } from '@/services/interviewService';
 import InfoPopup from '../../../components/common/InfoPopup';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-
-// Định nghĩa type cho chi tiết câu trả lời
-type ResultAnswerDetail = {
-  id: string;
-  questionId: string;
-  question: string;
-  answer: string;
-  score: number; // 0..10
-  overallScore: {
-    speaking: number;
-    content: number;
-    relevance: number;
-  };
-  feedback: string;
-  strengths: string[];
-  improvements: string[];
-  interviewId: string;
-  interviewTitle: string;
-};
+import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 
 // Removed mock; fetch from backend
 
@@ -53,7 +36,10 @@ export default function ResultAnswerDetailScreen() {
     strengths: string[];
     improvements: string[];
     interviewTitle: string;
+    audioUrl?: string;
   } | null>(null);
+  const [answerSound, setAnswerSound] = useState<Audio.Sound | null>(null);
+  const [isSpeakingQuestion, setIsSpeakingQuestion] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -74,6 +60,7 @@ export default function ResultAnswerDetailScreen() {
           strengths: Array.isArray(ans?.strengths) ? ans.strengths : [],
           improvements: Array.isArray(ans?.improvements) ? ans.improvements : [],
           interviewTitle: 'Kết quả phỏng vấn',
+          audioUrl: ans?.audio_url || '',
         };
         setDetail(mapped);
         const savedRes = await checkQuestionSaved(String(params.questionId));
@@ -86,6 +73,16 @@ export default function ResultAnswerDetailScreen() {
     };
     load();
   }, [params?.interviewId, params?.questionId]);
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+      setIsSpeakingQuestion(false);
+      if (answerSound) {
+        answerSound.unloadAsync();
+      }
+    };
+  }, [answerSound]);
   
   // Xử lý khi người dùng nhấn nút lưu
   const handleSave = async () => {
@@ -103,6 +100,50 @@ export default function ResultAnswerDetailScreen() {
       setShowSavePopup(true);
     } catch (e) {
       // ignore
+    }
+  };
+
+  const handleSpeakQuestion = () => {
+    if (!detail?.question) return;
+    if (isSpeakingQuestion) {
+      Speech.stop();
+      setIsSpeakingQuestion(false);
+      return;
+    }
+    Speech.stop();
+    if (answerSound) {
+      answerSound.stopAsync();
+    }
+    Speech.speak(detail.question, {
+      language: 'vi-VN',
+      onStart: () => setIsSpeakingQuestion(true),
+      onDone: () => setIsSpeakingQuestion(false),
+      onStopped: () => setIsSpeakingQuestion(false),
+      onError: () => setIsSpeakingQuestion(false),
+    });
+  };
+
+  const handlePlayAnswerAudio = async () => {
+    try {
+      if (!detail?.audioUrl) return;
+      Speech.stop();
+      setIsSpeakingQuestion(false);
+      if (answerSound) {
+        const status = await answerSound.getStatusAsync();
+        if (status.isLoaded) {
+          if (status.isPlaying) {
+            await answerSound.stopAsync();
+            return;
+          }
+          await answerSound.replayAsync();
+          return;
+        }
+      }
+      const { sound } = await Audio.Sound.createAsync({ uri: detail.audioUrl });
+      setAnswerSound(sound);
+      await sound.playAsync();
+    } catch (e) {
+      console.error('Play answer audio failed', e);
     }
   };
 
@@ -154,7 +195,7 @@ export default function ResultAnswerDetailScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Câu hỏi 1</Text>
-            <TouchableOpacity style={styles.audioButton}>
+            <TouchableOpacity style={styles.audioButton} onPress={handleSpeakQuestion}>
               <MaterialCommunityIcons name="volume-high" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -167,7 +208,7 @@ export default function ResultAnswerDetailScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Hiện thị văn bản câu trả lời</Text>
-            <TouchableOpacity style={styles.audioButton}>
+            <TouchableOpacity style={styles.audioButton} onPress={handlePlayAnswerAudio}>
               <MaterialCommunityIcons name="volume-high" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -225,7 +266,7 @@ export default function ResultAnswerDetailScreen() {
       {/* Nút lưu */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.saveButton}
+          style={[styles.saveButton, isSaved && styles.removeButton]}
           activeOpacity={0.8}
           onPress={handleSave}
         >
@@ -436,6 +477,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 6,
+  },
+  removeButton: {
+    backgroundColor: '#FF5555',
+    shadowColor: '#FF5555',
   },
   saveButtonText: {
     color: '#00141A', // Using dark text color on light button background

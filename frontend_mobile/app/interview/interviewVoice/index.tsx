@@ -190,6 +190,8 @@ export default function VoiceInterviewScreen() {
 
   const onTapMic = async () => {
     try {
+      // stop question TTS so it doesn't overlap with recording
+      Speech.stop();
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync(
@@ -278,6 +280,8 @@ export default function VoiceInterviewScreen() {
 
   const onSkip = async () => {
     try {
+      // stop any ongoing question reading before skipping
+      Speech.stop();
       if (!sessionId || !questionId) return;
       await submitAnswer({
         sessionId: String(sessionId),
@@ -304,6 +308,23 @@ export default function VoiceInterviewScreen() {
     }
   };
 
+  const onSkipFinish = async () => {
+    try {
+      Speech.stop();
+      if (sessionId && questionId) {
+        await submitAnswer({
+          sessionId: String(sessionId),
+          questionId: String(questionId),
+          answerText: 'Bỏ qua câu hỏi không trả lời',
+        });
+      }
+    } catch (e) {
+      // ignore errors and still finish interview
+    } finally {
+      await finishAndShowPopup();
+    }
+  };
+
   return (
     <AppLayout>
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
@@ -318,7 +339,7 @@ export default function VoiceInterviewScreen() {
           </Text>
           <Text style={styles.subtitle}>{`Câu hỏi số ${questionIndex} trên ${questionTotal}`}</Text>
         </View>
-        <TouchableOpacity style={styles.hbtn} onPress={() => setShowEndPopup(true)}>
+        <TouchableOpacity style={styles.hbtn} onPress={onSkipFinish}>
           <MaterialCommunityIcons name="page-next-outline" size={20} color={theme.colors.white} />
         </TouchableOpacity>
       </View>

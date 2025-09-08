@@ -8,13 +8,17 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { router } from 'expo-router';
 import AppLayout from '@/components/custom/AppLayout';
 
+type InterviewChatProps = {
+  askBot: (question: string, previousAnswer?: string) => Promise<{ answer: string }>;
+};
+
 type Msg = {
   id: string;
   text: string;
   sender: "bot" | "user";
 };
 
-const InterviewChat = () => {
+const InterviewChat = ({ askBot }: InterviewChatProps) => {
   const [messages, setMessages] = useState<Msg[]>([
     { id: "m1", text: "Xin chào 👋! Tôi có thể giúp gì cho bạn trong buổi luyện phỏng vấn hôm nay?", sender: "bot" }
   ]);
@@ -23,7 +27,7 @@ const InterviewChat = () => {
   const listRef = useRef<FlatList<Msg>>(null);
 
   // gửi tin nhắn user
-  const send = () => {
+  const send = async () => {
     const trimmed = input.trim();
     if (!trimmed) return;
     const userMsg: Msg = {
@@ -35,16 +39,24 @@ const InterviewChat = () => {
     setInput("");
     scrollToEndNext();
 
-    // mô phỏng bot trả lời
-    setTimeout(() => {
+    try {
+      const lastBot = [...messages].reverse().find(m => m.sender === 'bot');
+      const resp = await askBot(trimmed, lastBot?.text);
       const bot: Msg = {
         id: String(Date.now() + 1),
-        text: `Bạn vừa hỏi: "${trimmed}". Đây là câu trả lời demo của bot 🤖`,
+        text: resp.answer,
         sender: "bot"
       };
       setMessages((prev) => [...prev, bot]);
-      scrollToEndNext();
-    }, 700);
+    } catch (error: any) {
+      const bot: Msg = {
+        id: String(Date.now() + 1),
+        text: error.message || "Đã xảy ra lỗi, vui lòng thử lại",
+        sender: "bot"
+      };
+      setMessages((prev) => [...prev, bot]);
+    }
+    scrollToEndNext();
   };
 
   const scrollToEndNext = () => {
