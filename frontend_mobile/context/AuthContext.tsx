@@ -64,6 +64,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userString && token) {
           const userData = JSON.parse(userString);
           setUser(userData);
+          
+          // Kiểm tra nếu nghề nghiệp hoặc kinh nghiệm chưa được cập nhật
+          if (!userData.profession || !userData.experienceLevel) {
+            // Chuyển đến màn hình thiết lập hồ sơ
+            router.replace('/(auth)/setUpProfile');
+          }
         }
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -91,12 +97,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
       setUser(parsedUser);
       
-      // Kiểm tra xem user đã có thông tin profession và experience_level chưa
+      // Kiểm tra nếu nghề nghiệp hoặc kinh nghiệm chưa được cập nhật
       if (!parsedUser.profession || !parsedUser.experienceLevel) {
-        // Chuyển đến màn hình thiết lập thông tin
+        // Chuyển đến màn hình thiết lập hồ sơ
         router.replace('/(auth)/setUpProfile');
       } else {
-        // Chuyển đến màn hình chính
+        // Đăng nhập thành công chuyển thẳng đến màn hình chính
         router.replace('/(tabs)/home');
       }
       
@@ -124,14 +130,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
       setUser(parsedUser);
       
-      // Kiểm tra xem user đã có thông tin profession và experience_level chưa
-      if (!parsedUser.profession || !parsedUser.experienceLevel) {
-        // Chuyển đến màn hình thiết lập thông tin
+        // Đăng ký thành công chuyển đến màn hình thiết lập thông tin
         router.replace('/(auth)/setUpProfile');
-      } else {
-        // Chuyển đến màn hình chính
-        router.replace('/(tabs)/home');
-      }
       
       return { ok: true, user: parsedUser };
     } catch (error: any) {
@@ -172,6 +172,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser((prev) => {
         const merged = { ...(prev || {} as User), ...partial } as User;
         AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(merged));
+        
+        // Nếu đã cập nhật đầy đủ thông tin hồ sơ, chuyển về home
+        if (merged.profession && merged.experienceLevel) {
+          router.replace('/(tabs)/home');
+        }
+        
         return merged;
       });
     },

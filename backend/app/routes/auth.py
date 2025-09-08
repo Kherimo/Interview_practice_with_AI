@@ -1,12 +1,104 @@
 from datetime import datetime, timedelta, timezone
+import os
 import secrets
+import smtplib
 import jwt
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.database import get_session, User, PasswordReset
 from app.utils import token_required
 
+
+EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+
+
+def send_reset_code_email(email, code):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = email
+        msg['Subject'] = "🔐 PrepTalk - Reset Your Password"
+
+        body = f"""
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: 'Inter', Arial, sans-serif;
+                    background-color: #111827;
+                    color: #F9FAFB;
+                    padding: 20px;
+                    text-align: center;
+                }}
+                .container {{
+                    background-color: #1F2937;
+                    padding: 30px;
+                    border-radius: 10px;
+                    width: 80%;
+                    margin: auto;
+                }}
+                h2 {{
+                    color: #6D28D9;
+                    margin-bottom: 16px;
+                }}
+                p {{
+                    font-size: 16px;
+                    color: #D1D5DB;
+                    margin: 8px 0;
+                }}
+                .code {{
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #F9FAFB;
+                    background: #111827;
+                    padding: 10px 20px;
+                    border: 2px dashed #6D28D9;
+                    border-radius: 8px;
+                    display: inline-block;
+                    margin: 16px 0;
+                }}
+                .divider {{
+                    margin-top: 24px;
+                    border: none;
+                    border-top: 1px solid #374151;
+                }}
+                .footer {{
+                    margin-top: 20px;
+                    font-size: 14px;
+                    color: #9CA3AF;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>🔐 Reset Your Password</h2>
+                <p>Hello,</p>
+                <p>You requested to reset your password on <strong>PrepTalk</strong>. Use the code below to proceed:</p>
+                <div class="code">{code}</div>
+                <p>This code is valid for <strong>3 minutes</strong>.</p>
+                <p>If you did not request this, please ignore this email.</p>
+                <hr class="divider"/>
+                <p class="footer">© {datetime.now().year} PrepTalk. All rights reserved.</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_ADDRESS, email, msg.as_string())
+
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {str(e)}")
+        return False
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -121,7 +213,10 @@ def forgot_password():
         token = f"{secrets.randbelow(1000000):06d}"
         session.add(PasswordReset(email=email, token=token))
         session.commit()
-        print(f'Password reset token for {email}: {token}')
+
+        if not send_reset_code_email(email, token):
+            return jsonify({'error': 'Failed to send email'}), 500
+
         return jsonify({'message': 'Reset token sent'}), 200
     finally:
         session.close()
@@ -141,6 +236,10 @@ def reset_password():
         reset = session.query(PasswordReset).filter_by(email=email, token=token).first()
         if not reset:
             return jsonify({'error': 'Invalid token'}), 400
+        if datetime.utcnow() - reset.created_at > timedelta(minutes=3):
+            session.query(PasswordReset).filter_by(email=email, token=token).delete()
+            session.commit()
+            return jsonify({'error': 'Token expired'}), 400
         user = session.query(User).filter_by(email=email).first()
         if not user:
             return jsonify({'error': 'User not found'}), 404

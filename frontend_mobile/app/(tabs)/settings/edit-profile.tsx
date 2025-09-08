@@ -13,11 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import InfoPopup from '../../../components/common/InfoPopup';
-import { getCurrentUser, updateProfile } from '@/services/authService';
+import { getCurrentUser, updateProfile, uploadAvatar } from '@/services/authService';
 import { IconWrapper } from '../../../components/common/IconWrapper';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useAuth } from '@/context/AuthContext';
+import * as ImagePicker from 'expo-image-picker';
 
 const FIELDS = [
   { label: 'IT', value: 'IT' },
@@ -72,7 +73,7 @@ const EXPERIENCES = [
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { handleTokenInvalid } = useAuth();
+  const { handleTokenInvalid, updateUser } = useAuth();
   
   // State for form fields
   const [name, setName] = useState('');
@@ -80,15 +81,18 @@ export default function EditProfileScreen() {
   const [field, setField] = useState<string | null>(null);
   const [specialization, setSpecialization] = useState<string | null>(null);
   const [experience, setExperience] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isFocus, setIsFocus] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [warningTitle, setWarningTitle] = useState('');
   const [warningMessage, setWarningMessage] = useState('');
+  const [popupType, setPopupType] = useState<'info' | 'success' | 'warning' | 'error'>('warning');
 
-  const showWarningPopup = (title: string, message: string) => {
+  const showWarningPopup = (title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'warning') => {
     setWarningTitle(title);
     setWarningMessage(message);
+    setPopupType(type);
     setShowWarning(true);
   };
   
@@ -98,6 +102,7 @@ export default function EditProfileScreen() {
         const me = await getCurrentUser();
         setName(me.name || '');
         setEmail(me.email || '');
+        setAvatarUrl(me.avatar_url || null);
         
         // Parse profession to extract field and specialization
         if (me.profession) {
@@ -119,14 +124,36 @@ export default function EditProfileScreen() {
     load();
   }, [handleTokenInvalid]);
 
+  const handleChangeAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        const res = await uploadAvatar(uri);
+        setAvatarUrl(res.avatar_url);
+        await updateUser({ profilePicture: res.avatar_url });
+      }
+    } catch (e: any) {
+      if (e?.name === 'TokenInvalid') {
+        await handleTokenInvalid();
+      } else {
+        showWarningPopup('Lỗi', e?.message || 'Không thể cập nhật ảnh đại diện', 'error');
+      }
+    }
+  };
+
   // Save changes and go back to profile
   const handleSaveChanges = async () => {
     if (!name || !email) {
-      showWarningPopup('Lỗi', 'Vui lòng nhập đầy đủ họ tên và email');
+      showWarningPopup('Lỗi', 'Vui lòng nhập đầy đủ họ tên và email', 'error');
       return;
     }
     if (!email.includes('@')) {
-      showWarningPopup('Lỗi', 'Vui lòng nhập địa chỉ email hợp lệ');
+      showWarningPopup('Lỗi', 'Vui lòng nhập địa chỉ email hợp lệ', 'error');
       return;
     }
     try {
@@ -137,7 +164,7 @@ export default function EditProfileScreen() {
       if (e?.name === 'TokenInvalid') {
         await handleTokenInvalid();
       } else {
-        showWarningPopup('Lỗi', e?.message || 'Cập nhật hồ sơ thất bại');
+        showWarningPopup('Lỗi', e?.message || 'Cập nhật hồ sơ thất bại', 'error');
       }
     }
   };
@@ -146,10 +173,10 @@ export default function EditProfileScreen() {
     <BackgroundContainer withOverlay={false}>
       <StatusBar barStyle="light-content" />
 
-      {/* Info Popup - shown after account deletion */}
+      {/* Info Popup - shown after successful update */}
       <InfoPopup
         visible={showInfo}
-        title="Thông tin đã được cập nhật"
+        title="Thành công"
         message="Thông tin hồ sơ của bạn đã được cập nhật thành công!"
         onClose={() => {
           setShowInfo(false);
@@ -162,7 +189,7 @@ export default function EditProfileScreen() {
         title={warningTitle}
         message={warningMessage}
         onClose={() => setShowWarning(false)}
-        type="warning"
+        type={popupType}
       />
       
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{flexGrow: 1}}>
@@ -179,10 +206,13 @@ export default function EditProfileScreen() {
         
         {/* Profile Photo */}
         <View style={styles.photoContainer}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleChangeAvatar}>
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <Image source={require('../../../assets/images/default-avatar.png')} style={styles.avatarImage} />
+                <Image
+                  source={avatarUrl ? { uri: avatarUrl } : require('../../../assets/images/default-avatar.png')}
+                  style={styles.avatarImage}
+                />
               </View>
               <TouchableOpacity style={styles.cameraButton}>
                 <Ionicons name="camera" size={20} color="white" />

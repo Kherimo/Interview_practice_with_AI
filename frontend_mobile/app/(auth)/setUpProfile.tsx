@@ -1,16 +1,17 @@
 // SetUpProfile.tsx
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Image, Alert } from 'react-native';
 import React, { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import BackgroundContainer from '../../components/common/BackgroundContainer';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { updateProfile } from '@/services/authService';
+import { updateProfile, uploadAvatar } from '@/services/authService';
 import { useAuth } from '@/context/AuthContext';
 import InfoPopup from '@/components/common/InfoPopup';
 import AppLayout from '@/components/custom/AppLayout';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dropdown } from 'react-native-element-dropdown';
+import * as ImagePicker from 'expo-image-picker';
 
 
 
@@ -66,9 +67,9 @@ const EXPERIENCES = [
 ];
 
 const SetUpProfileScreen = () => {
-  const [field, setField] = useState<string | null>(FIELDS[0].value);
-  const [specialization, setSpecialization] = useState<string | null>(SPECIALIZATIONS_MAP[FIELDS[0].value][0].value);
-  const [experienceLevel, setExperienceLevel] = useState<string | null>(EXPERIENCES[1].value);
+  const [field, setField] = useState<string>(FIELDS[0].value);
+  const [specialization, setSpecialization] = useState<string>(SPECIALIZATIONS_MAP[FIELDS[0].value][0].value);
+  const [experienceLevel, setExperienceLevel] = useState<string>(EXPERIENCES[1].value);
   const [isFocus, setIsFocus] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { updateUser } = useAuth();
@@ -76,6 +77,10 @@ const SetUpProfileScreen = () => {
   const [warningTitle, setWarningTitle] = useState('');
   const [warningMessage, setWarningMessage] = useState('');
   const [popupType, setPopupType] = useState<'info' | 'success' | 'warning' | 'error'>('warning');
+  
+  // Avatar states
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const showWarningPopup = (title: string, message: string) => {
     setWarningTitle(title);
@@ -84,17 +89,51 @@ const SetUpProfileScreen = () => {
     setPopupType('warning');
   };
 
+  const handleChangeAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        setUploadingAvatar(true);
+        const res = await uploadAvatar(uri);
+        setSelectedAvatar(res.avatar_url);
+        setUploadingAvatar(false);
+      }
+    } catch (e: any) {
+      setUploadingAvatar(false);
+      showWarningPopup('Lỗi', e?.message || 'Không thể cập nhật ảnh đại diện');
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
-      if (!field || !specialization || !experienceLevel) {
-        showWarningPopup('Lỗi', 'Vui lòng chọn đầy đủ lĩnh vực, chuyên môn và kinh nghiệm');
-        return;
-      }
+      // Validation không cần thiết nữa vì các giá trị đã được khởi tạo với giá trị mặc định
       const profession = `${field} - ${specialization}`;
-      await updateProfile({ profession, experience_level: experienceLevel });
-      await updateUser({ profession, experienceLevel });
-      router.push('/(tabs)/home');
+      
+      // Cập nhật profile với avatar_url nếu có
+      const updateData: any = { profession, experience_level: experienceLevel };
+      if (selectedAvatar) {
+        updateData.avatar_url = selectedAvatar;
+      }
+      
+      await updateProfile(updateData);
+      await updateUser({ profession, experienceLevel, profilePicture: selectedAvatar || undefined });
+      
+      // Hiển thị thông báo thành công
+      setWarningTitle('Thành công');
+      setWarningMessage('Thông tin hồ sơ đã được cập nhật thành công!');
+      setPopupType('success');
+      setShowWarning(true);
+      
+      // Chuyển về home sau 2 giây
+      setTimeout(() => {
+        router.replace('/(tabs)/home');
+      }, 2000);
     } catch (e) {
       setWarningTitle('Lỗi');
       setWarningMessage((e as any)?.message || 'Cập nhật hồ sơ thất bại');
@@ -121,9 +160,7 @@ const SetUpProfileScreen = () => {
               />
               {/* Header */}
               <View style={styles.header}>
-              <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
-                  <Ionicons name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
+              <View style={{ width: 24 }} />
               <Text style={styles.headerTitle}>Thiết lập thông tin cá nhân</Text>
               <View style={{ width: 24 }} /> {/* giữ cân đối */}
               </View>
@@ -135,14 +172,30 @@ const SetUpProfileScreen = () => {
                   Điều này sẽ giúp chúng tôi cá nhân hóa buổi luyện phỏng vấn cho bạn.
               </Text>
 
-              {/* Avatar */}
+              {/* Avatar - Optional */}
               <View style={styles.avatarWrapper}>
-                  <View style={styles.avatarCircle}>
-                  <Ionicons name="person" size={48} color="#7CF3FF" />
+                <TouchableOpacity onPress={handleChangeAvatar} disabled={uploadingAvatar}>
+                  <View style={styles.avatarContainer}>
+                    <View style={styles.avatar}>
+                      {selectedAvatar ? (
+                        <Image source={{ uri: selectedAvatar }} style={styles.avatarImage} />
+                      ) : (
+                        <Ionicons name="person" size={48} color="#7CF3FF" />
+                      )}
+                      {uploadingAvatar && (
+                        <View style={styles.avatarLoadingOverlay}>
+                          <ActivityIndicator color="#fff" size="small" />
+                        </View>
+                      )}
+                    </View>
+                    <TouchableOpacity style={styles.cameraButton} disabled={uploadingAvatar}>
+                      <Ionicons name="camera" size={20} color="white" />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={styles.changeBtn}>
-                  <Text style={styles.changeText}>Thay đổi</Text>
-                  </TouchableOpacity>
+                </TouchableOpacity>
+                <Text style={styles.tapToChange}>
+                  {uploadingAvatar ? 'Đang tải...' : 'Nhấn để thay đổi ảnh (Tùy chọn)'}
+                </Text>
               </View>
 
               {/* Form */}
@@ -171,7 +224,7 @@ const SetUpProfileScreen = () => {
                   onChange={item => {
                     setField(item.value);
                     const specs = SPECIALIZATIONS_MAP[item.value] || [];
-                    setSpecialization(specs.length ? specs[0].value : null);
+                    setSpecialization(specs.length ? specs[0].value : SPECIALIZATIONS_MAP[FIELDS[0].value][0].value);
                     setIsFocus(false);
                   }}
                 />
@@ -188,12 +241,12 @@ const SetUpProfileScreen = () => {
                   selectedTextStyle={styles.selectedTextStyle}
                   inputSearchStyle={styles.inputSearchStyle}
                   iconStyle={styles.iconStyle}
-                  data={SPECIALIZATIONS_MAP[field || 'IT']}
+                  data={SPECIALIZATIONS_MAP[field]}
                   search
                   maxHeight={300}
                   labelField="label"
                   valueField="value"
-                  placeholder={(SPECIALIZATIONS_MAP[field || 'IT'][0] || { label: 'Chọn chuyên môn' }).label}
+                  placeholder={(SPECIALIZATIONS_MAP[field][0] || { label: 'Chọn chuyên môn' }).label}
                   searchPlaceholder="Tìm kiếm..."
                   value={specialization}
                   onFocus={() => setIsFocus(true)}
@@ -269,18 +322,69 @@ const styles = StyleSheet.create({
   title: { color: "#fff", fontSize: 20, fontWeight: "700", textAlign: "center", marginBottom: 6 },
   subtitle: { color: "#aaa", fontSize: 14, textAlign: "center", marginBottom: 20 },
   avatarWrapper: { alignItems: "center", marginBottom: 20 },
-  avatarCircle: {
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    alignItems: "center", justifyContent: "center",
-    marginBottom: 8,
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#5ee7d9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
-  changeBtn: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 20,
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#5ee7d9',
+    borderWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  changeText: { color: "#fff", fontSize: 13 },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+    position: 'absolute',
+  },
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(79, 227, 230, 0.85)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  tapToChange: {
+    color: '#fff',
+    marginTop: 10,
+    fontSize: 14,
+    textAlign: 'center',
+  },
   input: {
     width: "100%",
     backgroundColor: "rgba(255,255,255,0.1)",

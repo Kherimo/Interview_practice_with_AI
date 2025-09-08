@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
     ScrollView,
     StatusBar,
@@ -16,6 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import { Dropdown } from 'react-native-element-dropdown';
 import { getUserStats, UserStats } from '@/services/interviewService';
+import { useFocusEffect } from '@react-navigation/native';
 
 const mockScores = [
   { label: 'Dec 1', value: 4.8 },
@@ -46,22 +47,30 @@ export default function ProgressScreen() {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        setIsLoading(true);
-        const response = await getUserStats();
-        setUserStats(response.stats);
-      } catch (error: any) {
-        if (error?.name === 'TokenInvalid') {
-          await handleTokenInvalid();
-        }
-      } finally {
-        setIsLoading(false);
+  const loadStats = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await getUserStats();
+      setUserStats(response.stats);
+    } catch (error: any) {
+      if (error?.name === 'TokenInvalid') {
+        await handleTokenInvalid();
       }
-    };
-    loadStats();
+    } finally {
+      setIsLoading(false);
+    }
   }, [handleTokenInvalid]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats])
+  );
 
   const renderLabel = () => {
     if (value || isFocus) {

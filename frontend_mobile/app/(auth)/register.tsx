@@ -46,7 +46,9 @@ const RegisterScreen = () => {
       return;
     }
     const result = await signUp(email, password, fullName);
-    if (!result.ok) {
+    if (result.ok) {
+      router.replace('/(auth)/setUpProfile');
+    } else {
       setWarningTitle('Lỗi');
       setWarningMessage(result.error || 'Đăng ký thất bại. Vui lòng thử lại.');
       setPopupType('error');

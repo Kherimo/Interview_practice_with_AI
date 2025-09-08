@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View,
   Text, 
@@ -16,6 +16,7 @@ import BackgroundContainer from '../../../components/common/BackgroundContainer'
 import EmptyHistoryState from '../../../components/ui/history/EmptyHistoryState';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { getInterviewHistory } from '../../../services/interviewService';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Định nghĩa type cho lịch sử phỏng vấn
 type HistoryItem = {
@@ -49,12 +50,7 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch history data
-  useEffect(() => {
-    fetchHistoryData();
-  }, []);
-
-  const fetchHistoryData = async () => {
+  const fetchHistoryData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -68,7 +64,19 @@ export default function HistoryScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Fetch history data on mount
+  useEffect(() => {
+    fetchHistoryData();
+  }, [fetchHistoryData]);
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistoryData();
+    }, [fetchHistoryData])
+  );
 
   // Filter history based on search query
   const filteredHistory = historyData.filter(item =>
@@ -137,7 +145,7 @@ export default function HistoryScreen() {
 
   // Hàm xử lý khi bắt đầu phỏng vấn từ trạng thái trống
   const handleStartPractice = () => {
-    router.push('/interview/interviewVoice');
+    router.push('/interview');
   };
 
   // Hàm chọn màu dựa trên điểm số
