@@ -161,3 +161,20 @@ export async function changePassword(request: ChangePasswordRequest): Promise<{ 
   });
   return handleResponse(res);
 }
+export async function uploadAvatar(uri: string): Promise<{ avatar_url: string }> {
+  const token = await AsyncStorage.getItem('@preptalk_token');
+  const form = new FormData();
+  form.append('avatar', {
+    uri,
+    name: 'avatar.jpg',
+    type: 'image/jpeg',
+  } as any);
+  const res = await fetch(`${API_URL}/users/avatar`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+  return handleResponse(res);
+}

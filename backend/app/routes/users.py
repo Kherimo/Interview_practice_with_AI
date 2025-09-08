@@ -1,11 +1,39 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import os
+import uuid
+import logging
+
+try:
+    import cloudinary
+    import cloudinary.uploader
+except Exception as e:  # pragma: no cover - environment specific
+    logging.warning(f"Cloudinary not available: {e}")
+    cloudinary = None
+
 from app.database import get_session, User
 from app.utils import token_required
 
 
 users_bp = Blueprint('users', __name__, url_prefix='/users')
+
+# Cloudinary configuration for avatar uploads
+Cloud_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+Cloud_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+Cloud_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+AVATAR_FOLDER = os.getenv("CLOUDINARY_AVATAR_FOLDER")
+
+if cloudinary and Cloud_NAME and Cloud_API_KEY and Cloud_API_SECRET:
+    try:  # pragma: no cover - just configuration
+        cloudinary.config(
+            cloud_name=Cloud_NAME,
+            api_key=Cloud_API_KEY,
+            api_secret=Cloud_API_SECRET,
+            secure=True,
+        )
+    except Exception as e:  # pragma: no cover
+        logging.error(f"Failed to configure Cloudinary: {e}")
 
 
 @users_bp.route('/profile', methods=['PUT'])
@@ -77,6 +105,42 @@ def change_password(current_user):
         session.merge(current_user)
         session.commit()
         return jsonify({'message': 'Password changed'}), 200
+    finally:
+        session.close()
+
+
+@users_bp.route('/avatar', methods=['POST'])
+@token_required
+def update_avatar(current_user):
+    """Upload and update the user's avatar on Cloudinary."""
+    if not cloudinary or not Cloud_NAME:
+        return jsonify({'error': 'Cloudinary not configured'}), 500
+
+    avatar_file = request.files.get('avatar')
+    if not avatar_file:
+        return jsonify({'error': 'Missing avatar file'}), 400
+
+    session = get_session()
+    try:
+        public_id = f"avatar_{current_user.id}_{uuid.uuid4().hex[:8]}"
+        upload_result = cloudinary.uploader.upload(
+            avatar_file,
+            folder=AVATAR_FOLDER,
+            public_id=public_id,
+            overwrite=True,
+        )
+        avatar_url = upload_result.get('secure_url') or upload_result.get('url')
+        if not avatar_url:
+            return jsonify({'error': 'Upload failed'}), 500
+
+        current_user.avatar_url = avatar_url
+        session.merge(current_user)
+        session.commit()
+        return jsonify({'avatar_url': avatar_url, 'message': 'Avatar updated'}), 200
+    except Exception:
+        session.rollback()
+        logging.exception('Error uploading avatar')
+        return jsonify({'error': 'Failed to upload avatar'}), 500
     finally:
         session.close()
 

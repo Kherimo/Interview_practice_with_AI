@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
+import { useFocusEffect } from '@react-navigation/native';
 
 type SavedItem = {
   id: string;
@@ -68,12 +69,32 @@ export default function SavedScreen() {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [savedData, setSavedData] = useState<SavedItem[]>(MOCK_SAVED);
+
+  const loadSavedData = useCallback(async () => {
+    // TODO: Replace with actual API call when backend is ready
+    // For now, we'll just refresh the mock data
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setSavedData([...MOCK_SAVED]);
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+    }
+  }, []);
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadSavedData();
+    }, [loadSavedData])
+  );
 
   const list = useMemo(() => {
-    if (activeFilter === 'All') return MOCK_SAVED;
+    if (activeFilter === 'All') return savedData;
     const key = activeFilter === 'Hành vi' ? 'hành vi' : 'kỹ thuật';
-    return MOCK_SAVED.filter((i) => i.category.toLowerCase().includes(key));
-  }, [activeFilter]);
+    return savedData.filter((i) => i.category.toLowerCase().includes(key));
+  }, [activeFilter, savedData]);
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return '#2CE59A';

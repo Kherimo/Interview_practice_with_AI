@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import AppLayout from '@/components/custom/AppLayout';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ChatFloating from '@/components/chatFloating';
 import { getInterviewHistory, getUserStats, InterviewHistoryItem, UserStats } from '@/services/interviewService';
+import { useFocusEffect } from '@react-navigation/native';
 
 // ====== Real data from API ======
 type HistoryItem = InterviewHistoryItem;
@@ -39,26 +40,34 @@ export default function HomeScreen() {
     else setGreeting('Chào buổi tối');
   }, []);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [historyResponse, statsResponse] = await Promise.all([
-          getInterviewHistory(),
-          getUserStats()
-        ]);
-        setHistoryData(historyResponse.history);
-        setUserStats(statsResponse.stats);
-      } catch (error: any) {
-        if (error?.name === 'TokenInvalid') {
-          await handleTokenInvalid();
-        }
-      } finally {
-        setIsLoading(false);
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [historyResponse, statsResponse] = await Promise.all([
+        getInterviewHistory(),
+        getUserStats()
+      ]);
+      setHistoryData(historyResponse.history);
+      setUserStats(statsResponse.stats);
+    } catch (error: any) {
+      if (error?.name === 'TokenInvalid') {
+        await handleTokenInvalid();
       }
-    };
-    loadData();
+    } finally {
+      setIsLoading(false);
+    }
   }, [handleTokenInvalid]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Refresh data when tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   // Tính toán dữ liệu chính xác từ API
   const calculatedStats = useMemo(() => {

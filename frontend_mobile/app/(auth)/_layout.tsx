@@ -7,11 +7,11 @@ export default function AuthLayout() {
   const { theme } = useTheme();
   const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    if (!isLoading && user) {
-      router.replace('/(tabs)/home');
-    }
-  }, [isLoading, user]);
+  // useEffect(() => {
+  //   if (!isLoading && user) {
+  //     router.replace('/(tabs)/home');
+  //   }
+  // }, [isLoading, user]);
 
   return (
     <Stack
@@ -45,6 +45,12 @@ export default function AuthLayout() {
         name="forgot-password"
         options={{
           title: 'Quên mật khẩu',
+        }}
+      />
+      <Stack.Screen
+        name="setUpProfile"
+        options={{
+          title: 'Thiết lập hồ sơ',
         }}
       />
     </Stack>

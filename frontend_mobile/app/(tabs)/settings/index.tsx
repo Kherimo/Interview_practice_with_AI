@@ -79,12 +79,19 @@ export default function SettingsScreen() {
         profession: me.profession,
         experience_level: me.experience_level,
       });
+      
+      // Kiểm tra nếu nghề nghiệp hoặc kinh nghiệm chưa được cập nhật
+      if (!me.profession || !me.experience_level || me.profession === null || me.experience_level === null) {
+        // Chuyển hướng đến màn hình thiết lập hồ sơ
+        router.replace('/(auth)/setUpProfile');
+        return;
+      }
     } catch (e) {
       console.error('Load profile failed:', e);
     } finally {
       setLoadingProfile(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadProfile();
@@ -95,6 +102,19 @@ export default function SettingsScreen() {
       loadProfile();
     }, [loadProfile])
   );
+
+  // Kiểm tra thông tin hồ sơ khi component mount
+  useEffect(() => {
+    const checkProfileCompleteness = () => {
+      if (profile && (!profile.profession || !profile.experience_level)) {
+        router.replace('/(auth)/setUpProfile');
+      }
+    };
+    
+    if (!loadingProfile) {
+      checkProfileCompleteness();
+    }
+  }, [profile, loadingProfile, router]);
 
   return (
     <BackgroundContainer withOverlay={false}>
@@ -149,7 +169,10 @@ export default function SettingsScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Image source={require('../../../assets/images/default-avatar.png')} style={styles.avatarImage} />
+              <Image
+                source={profile?.avatar_url ? { uri: profile.avatar_url } : require('../../../assets/images/default-avatar.png')}
+                style={styles.avatarImage}
+              />
             </View>
           </View>
           
