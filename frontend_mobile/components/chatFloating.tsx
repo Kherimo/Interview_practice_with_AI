@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Modal, View, TouchableOpacity, StyleSheet, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import InterviewChat from "@/components/interviewChat";// file chat bạn có sẵn
+import InterviewChat from "@/components/interviewChat"; // file chat bạn có sẵn
+import { askInterviewBot } from "@/services/interviewService";
 import AppLayout from "./custom/AppLayout";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -35,7 +36,7 @@ const ChatFloating = () => {
 
                     {/* Chat UI */}
                     <View style={{ flex: 1 }}>
-                    <InterviewChat />
+                    <InterviewChat askBot={askInterviewBot} />
                     </View>
                 </View>
                 </View>

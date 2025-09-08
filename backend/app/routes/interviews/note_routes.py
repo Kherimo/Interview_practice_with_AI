@@ -88,8 +88,9 @@ def list_notes(current_user):
                 'id': question.id,
                 'question': question.content,
                 'category': session.field,
+                'interview_id': session.id,
                 'saved_at': note.created_at.isoformat() if note.created_at else None,
-                'excerpt': (answer.answer or '')[:200] if answer else None,
+                'excerpt': (answer.transcript_text or '')[:200] if (answer and answer.transcript_text) else None,
                 'score': answer.score if answer else None,
             })
         return jsonify({'saved': results})

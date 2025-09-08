@@ -6,82 +6,63 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../context/ThemeContext';
 import BackgroundContainer from '../../../components/common/BackgroundContainer';
 import { useFocusEffect } from '@react-navigation/native';
+import { getSavedQuestions, removeSavedQuestion } from '../../../services/interviewService';
+import { useRouter } from 'expo-router';
 
 type SavedItem = {
   id: string;
+  interviewId: string;
   title: string;
-  category: string;     // Hành vi / Kỹ thuật / ...
-  timeAgo: string;      // 2 ngày trước,...
+  category: string;
+  timeAgo: string;
   excerpt: string;
-  score: number;        // 0..10
+  score: number;
   bookmarked?: boolean;
 };
-
-const MOCK_SAVED: SavedItem[] = [
-  {
-    id: '1',
-    title: 'Giới thiệu bản thân',
-    category: 'Phỏng vấn hành vi',
-    timeAgo: '2 ngày trước',
-    excerpt:
-      'Tôi có 3 năm kinh nghiệm trong phát triển web, chuyên về React và Node.js. Tôi đã tham gia nhiều dự án…',
-    score: 8.5,
-    bookmarked: true,
-  },
-  {
-    id: '2',
-    title: 'Điểm mạnh và điểm yếu',
-    category: 'Phỏng vấn hành vi',
-    timeAgo: '1 tuần trước',
-    excerpt:
-      'Điểm mạnh của tôi là khả năng học hỏi nhanh và làm việc nhóm tốt. Điểm yếu là đôi khi tôi quá…',
-    score: 7.8,
-  },
-  {
-    id: '3',
-    title: 'Thuật toán sắp xếp',
-    category: 'Phỏng vấn kỹ thuật',
-    timeAgo: '2 tuần trước',
-    excerpt:
-      'Có nhiều thuật toán sắp xếp như Quick Sort, Merge Sort. Quick Sort có độ phức tạp O(n log n)…',
-    score: 6.5,
-  },
-  {
-    id: '4',
-    title: 'Thuật toán sắp xếp',
-    category: 'Phỏng vấn kỹ thuật',
-    timeAgo: '2 tuần trước',
-    excerpt:
-      'Có nhiều thuật toán sắp xếp như Quick Sort, Merge Sort. Quick Sort có độ phức tạp O(n log n)…',
-    score: 6.5,
-  },
-];
 
 const FILTERS = ['Tất cả', 'Hành vi', 'Kỹ thuật'];
 
 export default function SavedScreen() {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [savedData, setSavedData] = useState<SavedItem[]>(MOCK_SAVED);
+  const [savedData, setSavedData] = useState<SavedItem[]>([]);
+  const router = useRouter();
+
+  const formatTimeAgo = useCallback((date: string) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'Vừa xong';
+    if (minutes < 60) return `${minutes} phút trước`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} giờ trước`;
+    const days = Math.floor(hours / 24);
+    return `${days} ngày trước`;
+  }, []);
 
   const loadSavedData = useCallback(async () => {
-    // TODO: Replace with actual API call when backend is ready
-    // For now, we'll just refresh the mock data
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setSavedData([...MOCK_SAVED]);
+      const data = await getSavedQuestions();
+      const items = (data?.saved ?? []).map((it: any) => ({
+        id: String(it.id),
+        interviewId: String(it.interview_id || ''),
+        title: it.question,
+        category: it.category,
+        timeAgo: it.saved_at ? formatTimeAgo(it.saved_at) : '',
+        excerpt: it.excerpt || '',
+        score: it.score ?? 0,
+        bookmarked: true,
+      }));
+      setSavedData(items);
     } catch (error) {
       console.error('Error loading saved data:', error);
+      setSavedData([]);
     }
-  }, []);
+  }, [formatTimeAgo]);
 
   // Refresh data when tab is focused
   useFocusEffect(
@@ -90,11 +71,7 @@ export default function SavedScreen() {
     }, [loadSavedData])
   );
 
-  const list = useMemo(() => {
-    if (activeFilter === 'All') return savedData;
-    const key = activeFilter === 'Hành vi' ? 'hành vi' : 'kỹ thuật';
-    return savedData.filter((i) => i.category.toLowerCase().includes(key));
-  }, [activeFilter, savedData]);
+  const list = useMemo(() => savedData, [savedData]);
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return '#2CE59A';
@@ -104,15 +81,32 @@ export default function SavedScreen() {
   };
 
   const renderItem = ({ item }: { item: SavedItem }) => (
-    <View
+    <TouchableOpacity
       style={[styles.card, styles.cardBorder]}
+      onPress={() =>
+        router.push({
+          pathname: '/interview/interviewResultDetails/[questionId]',
+          params: { questionId: item.id, interviewId: item.interviewId },
+        })
+      }
     >
       {/* bookmark */}
-      <TouchableOpacity style={styles.bookmarkBtn} onPress={() => {}}>
+      <TouchableOpacity
+        style={styles.bookmarkBtn}
+        onPress={async (e: any) => {
+          e.stopPropagation?.();
+          try {
+            await removeSavedQuestion(item.id);
+            loadSavedData();
+          } catch (err) {
+            console.error('Error removing saved question:', err);
+          }
+        }}
+      >
         <MaterialCommunityIcons
-          name={item.bookmarked ? 'bookmark' : 'bookmark-outline'}
+          name="bookmark"
           size={20}
-          color="#B7E9FF"
+          color="#FFD54F"
         />
       </TouchableOpacity>
 
@@ -146,7 +140,7 @@ export default function SavedScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -174,37 +168,26 @@ export default function SavedScreen() {
               </View>
             </View>
 
-      {/* Filter chips */}
-      {/* <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
-        {FILTERS.map((f) => {
-          const active = activeFilter === f;
-          return (
-            <TouchableOpacity
-              key={f}
-              onPress={() => setActiveFilter(f)}
-              style={[
-                styles.chip,
-                active ? styles.chipActive : styles.chipInactive,
-                styles.cardBorder,
-              ]}
-            >
-              <Text style={[styles.chipText, active && { color: '#00141A' }]}>{f}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView> */}
-
       {/* List */}
-      <FlatList
-        data={list}
-        keyExtractor={(i) => i.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 70 }}
-      />
+      {list.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons
+            name="bookmark-off-outline"
+            size={64}
+            color="#B7E9FF"
+          />
+          <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+            Chưa có câu hỏi nào được lưu
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={list}
+          keyExtractor={(i) => i.id}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 70 }}
+        />
+      )}
     </BackgroundContainer>
   );
 }
@@ -278,4 +261,6 @@ const styles = StyleSheet.create({
   },
   actions: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center' },
   iconBtn: { paddingHorizontal: 6, paddingVertical: 4 },
+  emptyContainer: { alignItems: 'center', marginTop: 60 },
+  emptyText: { marginTop: 12, fontSize: 16 },
 });

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import BackgroundContainer from '../../../../components/common/BackgroundContain
 import InfoPopup from '../../../../components/common/InfoPopup';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { getAnswerDetail, saveQuestion, removeSavedQuestion, checkQuestionSaved } from '../../../../services/interviewService';
+import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 
 // Định nghĩa type cho chi tiết câu trả lời
 type AnswerDetail = {
@@ -49,6 +51,8 @@ export default function HistoryAnswerDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [popupMsg, setPopupMsg] = useState('');
+  const [answerSound, setAnswerSound] = useState<Audio.Sound | null>(null);
+  const [isSpeakingQuestion, setIsSpeakingQuestion] = useState(false);
 
   // Fetch answer detail data
   useEffect(() => {
@@ -73,6 +77,16 @@ export default function HistoryAnswerDetailScreen() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+      setIsSpeakingQuestion(false);
+      if (answerSound) {
+        answerSound.unloadAsync();
+      }
+    };
+  }, [answerSound]);
 
   // Show loading state
   if (loading) {
@@ -127,6 +141,50 @@ export default function HistoryAnswerDetailScreen() {
     }
   };
 
+  const handleSpeakQuestion = () => {
+    if (!data?.question) return;
+    if (isSpeakingQuestion) {
+      Speech.stop();
+      setIsSpeakingQuestion(false);
+      return;
+    }
+    Speech.stop();
+    if (answerSound) {
+      answerSound.stopAsync();
+    }
+    Speech.speak(data.question, {
+      language: 'vi-VN',
+      onStart: () => setIsSpeakingQuestion(true),
+      onDone: () => setIsSpeakingQuestion(false),
+      onStopped: () => setIsSpeakingQuestion(false),
+      onError: () => setIsSpeakingQuestion(false),
+    });
+  };
+
+  const handlePlayAnswerAudio = async () => {
+    try {
+      if (!data?.audio_url) return;
+      Speech.stop();
+      setIsSpeakingQuestion(false);
+      if (answerSound) {
+        const status = await answerSound.getStatusAsync();
+        if (status.isLoaded) {
+          if (status.isPlaying) {
+            await answerSound.stopAsync();
+            return;
+          }
+          await answerSound.replayAsync();
+          return;
+        }
+      }
+      const { sound } = await Audio.Sound.createAsync({ uri: data.audio_url });
+      setAnswerSound(sound);
+      await sound.playAsync();
+    } catch (e) {
+      console.error('Play answer audio failed', e);
+    }
+  };
+
   return (
     <BackgroundContainer withOverlay={false}>
       <SafeAreaView style={{ flex: 0 }} />
@@ -174,7 +232,7 @@ export default function HistoryAnswerDetailScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Câu hỏi 1</Text>
-            <TouchableOpacity style={styles.audioButton}>
+            <TouchableOpacity style={styles.audioButton} onPress={handleSpeakQuestion}>
               <MaterialCommunityIcons name="volume-high" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -187,7 +245,7 @@ export default function HistoryAnswerDetailScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Hiện thị văn bản câu trả lời</Text>
-            <TouchableOpacity style={styles.audioButton}>
+            <TouchableOpacity style={styles.audioButton} onPress={handlePlayAnswerAudio}>
               <MaterialCommunityIcons name="volume-high" size={22} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -245,7 +303,7 @@ export default function HistoryAnswerDetailScreen() {
       {/* Nút lưu */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.saveButton}
+          style={[styles.saveButton, isSaved && styles.removeButton]}
           activeOpacity={0.8}
           onPress={handleSave}
         >
@@ -448,6 +506,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 6,
+  },
+  removeButton: {
+    backgroundColor: '#FF5555',
+    shadowColor: '#FF5555',
   },
   saveButtonText: {
     color: '#00141A', // Using dark text color on light button background

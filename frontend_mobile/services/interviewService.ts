@@ -317,4 +317,15 @@ export async function getUserStats(): Promise<StatsResponse> {
   return handleResponse(res);
 }
 
-
+export async function askInterviewBot(question: string, previousAnswer?: string) {
+  const token = await AsyncStorage.getItem('@preptalk_token');
+  const res = await fetch(`${API_URL}/interviews/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ question, previousAnswer }),
+  });
+  return handleResponse(res);
+}

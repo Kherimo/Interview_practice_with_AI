@@ -5,6 +5,7 @@ from .answer_routes import answer_bp
 from .history_routes import history_bp
 from .stats_routes import stats_bp
 from .note_routes import note_bp
+from .chat_routes import chat_bp
 
 # Tạo blueprint chính
 interviews_bp = Blueprint('interviews', __name__, url_prefix='/interviews')
@@ -16,7 +17,7 @@ interviews_bp.register_blueprint(answer_bp)
 interviews_bp.register_blueprint(history_bp)
 interviews_bp.register_blueprint(stats_bp)
 interviews_bp.register_blueprint(note_bp)
-
+interviews_bp.register_blueprint(chat_bp)
 
 
 
